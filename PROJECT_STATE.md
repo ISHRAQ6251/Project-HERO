@@ -276,6 +276,15 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
        stack into a String; UI drive POSTs are single-flight so stop cannot
        lose a race to a stale drive.
 
+- [x] **Haptics, camera L/R, equal drive buttons (2026-09-26)**: cockpit
+      `navigator.vibrate` was only on the speed slider `input` event (10 ms
+      pulses cancel each other while dragging; `input` is a weak gesture).
+      Shared `haptic()` now taps every control on press. `camFlip` used to
+      drive both `hmirror` and `vflip`; native OV5640 L/R is reversed vs the
+      chassis, so hmirror is now always on and flip only toggles vflip.
+      Drive pad buttons use `aspect-ratio: 1/1` so Up is no longer stretched
+      by the Mood/Speed panel.
+
 ## In Progress
 
 - None. Rebuild + reflash needed for firmware/UI on device.

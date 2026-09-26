@@ -296,9 +296,11 @@ void CameraServer::applySettings() {
     }
     s->set_framesize(s, (framesize_t)settings.data.camResolution);
     s->set_quality(s, settings.data.camQuality);
-    bool flip = settings.data.camFlip;
-    s->set_hmirror(s, flip ? 1 : 0);
-    s->set_vflip(s, flip ? 1 : 0);
+    // OV5640 on this module is natively left/right reversed relative to
+    // the chassis, so hmirror stays on. camFlip only toggles vflip for
+    // upside-down mounting — never the left/right axis.
+    s->set_hmirror(s, 1);
+    s->set_vflip(s, settings.data.camFlip ? 1 : 0);
     unlock();
 }
 

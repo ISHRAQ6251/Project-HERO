@@ -2,6 +2,16 @@
 
 const $ = (id) => document.getElementById(id);
 
+function haptic(ms) {
+  if (typeof navigator.vibrate !== "function") return;
+  try { navigator.vibrate(ms || 10); } catch (_) {}
+}
+
+function buzzOnPress(id) {
+  const el = typeof id === "string" ? $(id) : id;
+  if (el) el.addEventListener("pointerdown", () => haptic(10));
+}
+
 const state = {
   token: localStorage.getItem("hero_token") || "",
   throttle: 0,
@@ -155,6 +165,7 @@ function refreshVideo() {
   v.src = "/stream?t=" + Date.now();
 }
 
+buzzOnPress("streamBtn");
 $("streamBtn").addEventListener("click", async () => {
   if (camBusy) return;
   camBusy = true;
@@ -172,6 +183,7 @@ $("streamBtn").addEventListener("click", async () => {
   }
 });
 
+buzzOnPress("flipBtn");
 $("flipBtn").addEventListener("click", async () => {
   if (!state.camEnabled) return;
   const next = !state.flip;
@@ -180,6 +192,7 @@ $("flipBtn").addEventListener("click", async () => {
   refreshVideo();
 });
 
+buzzOnPress("photoBtn");
 $("photoBtn").addEventListener("click", async () => {
   if (!state.camEnabled) return;
   try {
@@ -232,6 +245,7 @@ function stopRecording() {
   $("videoBadge").classList.add("hidden");
 }
 
+buzzOnPress("recBtn");
 $("recBtn").addEventListener("click", () => {
   if (recorder) { stopRecording(); return; }
   if (!state.camEnabled) return;
@@ -348,6 +362,7 @@ function bindCtrl(id, key) {
     if (e.pointerId !== undefined && el.setPointerCapture) {
       try { el.setPointerCapture(e.pointerId); } catch (_) {}
     }
+    haptic(10);
     held.add(key);
     el.classList.add("active");
     computeDrive();
@@ -398,11 +413,19 @@ bindCtrl("btnRight", "right");
 /* ---------------- speed ---------------- */
 const speedInput = $("speed");
 const speedVal = $("speedVal");
-speedInput.addEventListener("input", () => {
-  state.speedScale = parseInt(speedInput.value, 10);
-  speedVal.textContent = state.speedScale;
-  if (navigator.vibrate) navigator.vibrate(10);
-});
+let lastSpeedHaptic = 0;
+if (speedInput) {
+  speedInput.addEventListener("pointerdown", () => haptic(10));
+  speedInput.addEventListener("input", () => {
+    state.speedScale = parseInt(speedInput.value, 10);
+    if (speedVal) speedVal.textContent = state.speedScale;
+    const now = Date.now();
+    if (now - lastSpeedHaptic >= 50) {
+      lastSpeedHaptic = now;
+      haptic(10);
+    }
+  });
+}
 
 /* ---------------- mood ---------------- */
 async function setMood(m) {
@@ -413,7 +436,10 @@ async function setMood(m) {
   }
 }
 
-$("moodSelect").addEventListener("change", () => setMood($("moodSelect").value));
+$("moodSelect").addEventListener("change", () => {
+  haptic(10);
+  setMood($("moodSelect").value);
+});
 
 function setMoodPopup(open) {
   $("moodPopup").classList.toggle("hidden", !open);
@@ -424,10 +450,12 @@ function setMoodPopup(open) {
   }
 }
 
+buzzOnPress("moodBtn");
 $("moodBtn").addEventListener("click", () => {
   setMoodPopup($("moodPopup").classList.contains("hidden"));
 });
 document.querySelectorAll(".mood-opt").forEach((b) => {
+  buzzOnPress(b);
   b.addEventListener("click", () => {
     setMood(b.dataset.mood);
     setMoodPopup(false);
@@ -446,6 +474,7 @@ function updateMsgState(active) {
   $("msgClear").classList.toggle("hidden", !active);
   $("msgInput").placeholder = active ? "New message replaces current" : "Message to OLED...";
 }
+buzzOnPress("msgSend");
 $("msgSend").addEventListener("click", async () => {
   const t = $("msgInput").value.trim();
   if (!t) return;
@@ -454,6 +483,7 @@ $("msgSend").addEventListener("click", async () => {
   $("msgInput").value = "";
 });
 $("msgInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("msgSend").click(); });
+buzzOnPress("msgClear");
 $("msgClear").addEventListener("click", async () => {
   const r = await api("/api/message", {});
   if (r.ok) { updateMsgState(false); $("msgLive").textContent = "OLED message cleared"; }
@@ -472,7 +502,10 @@ async function setFlashlight(on) {
   const r = await api("/api/flash", { on: state.flashlight ? 1 : 0 });
   if (!r.ok) setFlashUi(prev);
 }
-$("flashToggle").addEventListener("change", () => setFlashlight($("flashToggle").checked));
+$("flashToggle").addEventListener("change", () => {
+  haptic(10);
+  setFlashlight($("flashToggle").checked);
+});
 
 /* ---------------- settings modal ---------------- */
 function clampTrim(v) {
@@ -508,6 +541,8 @@ function closeSettings() {
   $("settingsModal").classList.add("hidden");
   if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
 }
+buzzOnPress("settingsBtn");
+buzzOnPress("settingsClose");
 $("settingsBtn").addEventListener("click", openSettings);
 $("settingsClose").addEventListener("click", closeSettings);
 
@@ -542,13 +577,25 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-$("trimLeft").addEventListener("input", () => {
-  $("trimLeftVal").textContent = $("trimLeft").value;
-});
-$("trimRight").addEventListener("input", () => {
-  $("trimRightVal").textContent = $("trimRight").value;
-});
+$("setTheme").addEventListener("change", () => haptic(10));
+$("revLeft").addEventListener("change", () => haptic(10));
+$("revRight").addEventListener("change", () => haptic(10));
 
+let lastTrimHaptic = 0;
+function onTrimInput(id, outId) {
+  $(outId).textContent = $(id).value;
+  const now = Date.now();
+  if (now - lastTrimHaptic >= 50) {
+    lastTrimHaptic = now;
+    haptic(10);
+  }
+}
+$("trimLeft").addEventListener("pointerdown", () => haptic(10));
+$("trimLeft").addEventListener("input", () => onTrimInput("trimLeft", "trimLeftVal"));
+$("trimRight").addEventListener("pointerdown", () => haptic(10));
+$("trimRight").addEventListener("input", () => onTrimInput("trimRight", "trimRightVal"));
+
+buzzOnPress("settingsSave");
 $("settingsSave").addEventListener("click", async () => {
   const msg = $("settingsMsg");
   const theme = $("setTheme").value;

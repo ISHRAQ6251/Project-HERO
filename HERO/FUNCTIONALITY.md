@@ -93,7 +93,7 @@ All control endpoints (except `/api/info`, `/api/auth`, `/stream` and
 | `/api/message` | POST | yes | `text` | Show message; empty `text` clears |
 | `/api/flash` | POST | yes | `on` | 0/1 flashlight (GPIO2, saved in NVS) |
 | `/api/settings` | POST | yes | `oledAnim`, `reverseLeft`, `reverseRight`, `trimLeft`, `trimRight` | eyes animation, per-motor reverse, and PWM trim (50-100) |
-| `/api/camera` | POST | yes | `flip`, `on` | `flip` 0/1 mirror+vflip; `on` 1 starts the sensor, `on` 0 requests de-init. Init/deinit run in `CameraServer::update()` from `loop()` |
+| `/api/camera` | POST | yes | `flip`, `on` | `flip` 0/1 vflip only (upside-down mount). Horizontal mirror is always on so stream L/R matches the chassis. `on` 1 starts the sensor, `on` 0 requests de-init. Init/deinit run in `CameraServer::update()` from `loop()` |
 | `/api/token` | POST | yes | `token` | Change access token (min 4 chars) |
 
 `/api/state` returns: `throttle`, `steering`, `mood`, `sleeping`,

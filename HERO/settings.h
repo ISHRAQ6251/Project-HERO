@@ -7,7 +7,7 @@ struct RoverSettings {
 
     int camResolution = 9;    // framesize_t: 9 = FRAMESIZE_SVGA (800x600)
     int camQuality = 12;      // JPEG quality 10..63 (lower = better)
-    bool camFlip = false;     // mirror + vflip the image
+    bool camFlip = false;     // vflip only (upside-down mount); hmirror is always on
 
     bool flashlightOn = false;
     bool oledAnim = true;

@@ -292,7 +292,8 @@ address plus the hotspot password. Change the access token later in Settings.
   to **stop the sensor** (de-init, not just the browser picture). Stopping
   also ends a clip if one is recording.
 - **Video panel** - live stream, letterboxed to the camera aspect so nothing
-  is cropped. Overlay: flip/refresh, photo, record (turns into a stop square
+  is cropped. Overlay: flip (vertical / upside-down mount only; left/right
+  always matches the rover), photo, record (turns into a stop square
   while recording; a red REC badge shows; tap again to finish). Flip and
   capture are disabled while the camera is stopped.
 - **Drive pad** - Mood and Speed span the top-left two thirds; the Up button
