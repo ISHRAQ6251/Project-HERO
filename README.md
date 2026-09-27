@@ -1,5 +1,7 @@
 # HERO
 
+HERO stands for Hazardous Environment Reconnaissance & Observation Robot.
+
 Wi-Fi controlled RC rover for a university microcontroller lab project.
 
 An ESP32-S3-CAM module streams live video over Wi-Fi to a phone browser while a
