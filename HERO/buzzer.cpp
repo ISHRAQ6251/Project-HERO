@@ -6,10 +6,11 @@ Buzzer buzzer;
 
 // Terminator is {0, 0}. {0, n} with n > 0 is a rest.
 
-static const Buzzer::Step kBoot[]     = {{523, 80}, {659, 80}, {784, 140}, {0, 0}};
-static const Buzzer::Step kCamOn[]    = {{1200, 50}, {0, 0}};
+static const Buzzer::Step kBoot[]      = {{523, 80}, {659, 80}, {784, 140}, {0, 0}};
+static const Buzzer::Step kApConnect[] = {{1047, 40}, {0, 35}, {1047, 40}, {0, 0}};
+static const Buzzer::Step kCamOn[]     = {{1200, 50}, {0, 0}};
 static const Buzzer::Step kCamOff[]   = {{400, 70}, {0, 0}};
-static const Buzzer::Step kHappy[]    = {{784, 70}, {988, 110}, {0, 0}};
+static const Buzzer::Step kHappy[]    = {{784, 70}, {988, 80}, {1175, 90}, {0, 30}, {1568, 150}, {0, 0}};
 static const Buzzer::Step kAngry[]    = {{175, 50}, {0, 20}, {175, 50}, {0, 0}};
 static const Buzzer::Step kCurious[]  = {{880, 40}, {1320, 80}, {0, 0}};
 static const Buzzer::Step kDead[]     = {{698, 60}, {523, 60}, {392, 70}, {262, 120}, {0, 0}};
@@ -103,8 +104,9 @@ void Buzzer::silence() {
 
 const Buzzer::Step* Buzzer::sequence(BuzzerCue cue) const {
     switch (cue) {
-        case BuzzerCue::BOOT:      return kBoot;
-        case BuzzerCue::CAM_ON:    return kCamOn;
+        case BuzzerCue::BOOT:       return kBoot;
+        case BuzzerCue::AP_CONNECT: return kApConnect;
+        case BuzzerCue::CAM_ON:     return kCamOn;
         case BuzzerCue::CAM_OFF:   return kCamOff;
         case BuzzerCue::HAPPY:     return kHappy;
         case BuzzerCue::ANGRY:     return kAngry;

@@ -1,12 +1,20 @@
 #include "wifi_helper.h"
 #include "config.h"
+#include "buzzer.h"
 #include <ESPmDNS.h>
 
 WifiHelper wifiHelper;
 
+static void onWifiEvent(WiFiEvent_t event) {
+    if (event == ARDUINO_EVENT_WIFI_AP_STACONNECTED) {
+        buzzer.play(BuzzerCue::AP_CONNECT);
+    }
+}
+
 void WifiHelper::begin() {
     WiFi.mode(WIFI_AP);
     WiFi.setHostname(HOSTNAME);
+    WiFi.onEvent(onWifiEvent);
     WiFi.softAP(AP_SSID, AP_PASS);
     delay(200);
 

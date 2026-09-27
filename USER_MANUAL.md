@@ -335,9 +335,11 @@ address plus the hotspot password. Change the access token later in Settings.
 
 - **Photo** - a still is captured at the live stream resolution (800x600 by
   default) and downloads as `hero_<timestamp>.jpg`. The camera must be running.
+  The phone plays a short double-click shutter on tap.
 - **Clip** - recording is done on your phone's browser (WebM), so no SD card is
   needed. It downloads as `hero_clip.webm` when you stop recording. The stream
-  must be live (green CAM dot). Stopping the camera also stops the recording.
+  must be live (green CAM dot). Start plays a rising tone, stop a falling one.
+  Stopping the camera also stops the recording.
 
 ### 5.6 Settings
 
@@ -346,9 +348,10 @@ icon (camera, mood, then gear).
 
 - **Flashlight** - slider switch for the on-board LED. Takes effect immediately;
   you do not need to tap Save. The rover remembers the last state.
-- **Sound** - slider switch for the piezo buzzer cues (boot, camera, moods,
-  sleep/wake, messages, settings save, motor watchdog). Off mutes every cue.
-  Immediate; remembered on the rover. Default on.
+- **Sound** - slider switch for the piezo buzzer cues (boot, phone joining the
+  hotspot, camera, moods, sleep/wake, messages, settings save, motor watchdog).
+  Off mutes every rover cue. Immediate; remembered on the rover. Default on.
+  Photo shutter and clip start/stop play on the phone and are not muted here.
 - **Theme** - dark / light. Stored in the browser, not on the rover.
 - **Reverse left / right motor** - flip a channel in software if a motor
   (or the whole rover) drives the wrong way. Saved on the rover when you tap

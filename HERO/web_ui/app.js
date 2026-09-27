@@ -12,6 +12,73 @@ function buzzOnPress(id) {
   if (el) el.addEventListener("pointerdown", () => haptic(10));
 }
 
+let audioCtx = null;
+
+function getAudioCtx() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  try {
+    if (!audioCtx) audioCtx = new AC();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  } catch (_) {
+    return null;
+  }
+}
+
+function playNoiseClick(ctx, when) {
+  const dur = 0.018;
+  const n = Math.max(1, Math.floor(ctx.sampleRate * dur));
+  const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) data[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.value = 3200;
+  bp.Q.value = 8;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.linearRampToValueAtTime(0.9, when + 0.001);
+  g.gain.exponentialRampToValueAtTime(0.001, when + 0.02);
+  src.connect(bp);
+  bp.connect(g);
+  g.connect(ctx.destination);
+  src.start(when);
+  src.stop(when + dur);
+}
+
+function playShutter() {
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    playNoiseClick(ctx, t);
+    playNoiseClick(ctx, t + 0.055);
+  } catch (_) {}
+}
+
+function playRecTone(fromHz, toHz) {
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(fromHz, t);
+    osc.frequency.linearRampToValueAtTime(toHz, t + 0.08);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.18, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.09);
+  } catch (_) {}
+}
+
 const state = {
   token: localStorage.getItem("hero_token") || "",
   throttle: 0,
@@ -197,6 +264,7 @@ $("flipBtn").addEventListener("click", async () => {
 buzzOnPress("photoBtn");
 $("photoBtn").addEventListener("click", async () => {
   if (!state.camEnabled) return;
+  playShutter();
   try {
     const res = await fetch("/capture?t=" + Date.now(), { headers: authHeaders() });
     if (!res.ok) return;
@@ -238,6 +306,7 @@ function downloadBlob(blob, name) {
 
 function stopRecording() {
   if (recorder) {
+    playRecTone(1320, 880);
     recorder.stop();
     recorder = null;
   }
@@ -270,6 +339,7 @@ $("recBtn").addEventListener("click", () => {
     recCanvas = null;
   };
   recorder.start(1000);
+  playRecTone(880, 1320);
 
   const draw = () => {
     if (!recCanvas) return;

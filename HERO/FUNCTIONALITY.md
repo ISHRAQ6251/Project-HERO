@@ -36,8 +36,10 @@ moods, driving and messages.
   Settings as an immediate slider switch (does not wait for Save). State is stored
   in NVS.
 - Passive piezo buzzer on GPIO1 (LEDC channel 6). Non-blocking cues for boot,
-  camera on/off, moods, sleep/wake, OLED messages, settings save, and the
-  motor watchdog. Mute is NVS `sound_on` (default on), checked inside `Buzzer`.
+  SoftAP client join, camera on/off, moods, sleep/wake, OLED messages, settings
+  save, and the motor watchdog. Mute is NVS `sound_on` (default on), checked
+  inside `Buzzer`. Photo/clip shutter tones play in the browser (Web Audio),
+  not on the piezo, and are independent of that mute.
 - Mood system: six moods (Happy, Angry, Curious, Dead, Sleepy, Wink) shown both
   in a quick popup and a dropdown. A mood override lasts ~4 s (Wink 1.5 s)
   then returns to the idle face.

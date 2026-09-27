@@ -24,7 +24,8 @@ message-to-OLED box.
 - **Camera start/stop**: the sensor stays off at boot. A header button inits
   the OV5640 from the Arduino `loop()` and de-inits it on stop.
 - **Photo & clip capture**: stills at the live stream size (SVGA default) and
-  client-side WebM clips - no SD card required.
+  client-side WebM clips - no SD card required. Photo/clip play short shutter
+  tones on the phone.
 - **Differential drive**: hold-to-move steering/throttle pads with arcade
   throttle+steering mixing and a 0-255 speed slider. Left/right in the UI
   are mapped so the physical rover turns the expected way.

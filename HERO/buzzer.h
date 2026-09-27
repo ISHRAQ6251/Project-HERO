@@ -7,6 +7,7 @@
 
 enum class BuzzerCue : uint8_t {
     BOOT = 0,
+    AP_CONNECT,
     CAM_ON,
     CAM_OFF,
     HAPPY,

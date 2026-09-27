@@ -294,6 +294,11 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
       stays checkboxes. Dismissible Settings banner if the token is still
       `hero`.
 
+- [x] **Happy chime, AP-connect cue, browser shutter (2026-09-27)**: Happy is
+      G5–B5–D6, rest, G6. SoftAP join plays a same-pitch C6 double-blip
+      (`ARDUINO_EVENT_WIFI_AP_STACONNECTED`, registered before `softAP`).
+      Photo/clip cues are Web Audio on the phone, not gated by rover mute.
+
 ## In Progress
 
 - None. Rebuild + reflash needed for firmware/UI on device.
