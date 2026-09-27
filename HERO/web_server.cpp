@@ -1,12 +1,14 @@
 #include "web_server.h"
 #include "config.h"
 #include "settings.h"
+#include <string.h>
 #include "motor_control.h"
 #include "hero_eyes.h"
 #include "display_manager.h"
 #include "wifi_helper.h"
 #include "camera_server.h"
 #include "web_assets.h"
+#include "buzzer.h"
 
 WebServerMgr webServerMgr;
 
@@ -63,14 +65,15 @@ static void sendState(AsyncWebServerRequest* request) {
     wifiHelper.ip(ip, sizeof(ip));
     char message[140];
     jsonEscape(message, sizeof(message), displayMgr.message());
-    char buf[512];
+    char buf[640];
     snprintf(buf, sizeof(buf),
              "{\"ok\":true,\"throttle\":%d,\"steering\":%d,\"mood\":\"%s\","
              "\"sleeping\":%s,\"flashlightOn\":%s,\"oledAnim\":%s,"
-             "\"camResolution\":%d,\"camQuality\":%d,\"camFlip\":%s,\"camRunning\":%s,"
-             "\"reverseLeft\":%s,\"reverseRight\":%s,\"trimLeft\":%u,\"trimRight\":%u,"
-             "\"connected\":true,\"apMode\":true,\"ip\":\"%s\","
-             "\"messageActive\":%s,\"message\":\"%s\"}",
+              "\"camResolution\":%d,\"camQuality\":%d,\"camFlip\":%s,\"camRunning\":%s,"
+              "\"reverseLeft\":%s,\"reverseRight\":%s,\"trimLeft\":%u,\"trimRight\":%u,"
+              "\"soundEnabled\":%s,\"defaultToken\":%s,"
+              "\"connected\":true,\"apMode\":true,\"ip\":\"%s\","
+              "\"messageActive\":%s,\"message\":\"%s\"}",
              (int)motors.throttle(), (int)motors.steering(), eyes.moodName(),
              displayMgr.sleeping() ? "true" : "false",
              settings.data.flashlightOn ? "true" : "false",
@@ -80,8 +83,10 @@ static void sendState(AsyncWebServerRequest* request) {
              cameraServer.wanted() ? "true" : "false",
              settings.data.reverseLeft ? "true" : "false",
              settings.data.reverseRight ? "true" : "false",
-             (unsigned)settings.data.trimLeft, (unsigned)settings.data.trimRight,
-             ip,
+              (unsigned)settings.data.trimLeft, (unsigned)settings.data.trimRight,
+              settings.data.soundEnabled ? "true" : "false",
+              (strcmp(settings.data.authToken, AUTH_DEFAULT_TOKEN) == 0) ? "true" : "false",
+              ip,
              displayMgr.messageActive() ? "true" : "false",
              message);
     // Copy into a String so the async response owns the bytes (buf is stack).
@@ -212,8 +217,13 @@ void WebServerMgr::begin() {
             settings.setOledAnim(request->getParam("oledAnim", true)->value() == "1");
             eyes.setAnimEnabled(settings.data.oledAnim);
         }
-        if (request->hasParam("reverseLeft", true) || request->hasParam("reverseRight", true) ||
-            request->hasParam("trimLeft", true) || request->hasParam("trimRight", true)) {
+        if (request->hasParam("soundEnabled", true)) {
+            settings.setSoundEnabled(request->getParam("soundEnabled", true)->value() == "1");
+            if (!settings.data.soundEnabled) buzzer.stop();
+        }
+        bool motorSave = request->hasParam("reverseLeft", true) || request->hasParam("reverseRight", true) ||
+            request->hasParam("trimLeft", true) || request->hasParam("trimRight", true);
+        if (motorSave) {
             bool left = request->hasParam("reverseLeft", true)
                 ? request->getParam("reverseLeft", true)->value() == "1"
                 : settings.data.reverseLeft;
@@ -231,6 +241,7 @@ void WebServerMgr::begin() {
             settings.setMotorCal(left, right, trimL, trimR);
             motors.reapply();
         }
+        if (settings.data.soundEnabled) buzzer.play(BuzzerCue::SETTINGS);
         request->send(200, "application/json", "{\"ok\":true}");
     });
 

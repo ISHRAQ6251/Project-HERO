@@ -44,6 +44,7 @@ ESP32-S3-WROOM-1-N16R8"). Both agree on identical OV5640 wiring.
 | OV5640 | SIOD / SIOC (SCCB) | 4 / 5 |
 | OV5640 | PWDN / RESET | -1 / -1 |
 | On-board LED | flash / status | 2 |
+| Passive buzzer | piezo | 1 (fallback 38/39/48) |
 | DRV8833 | IN1 / IN2 (motor A) | 47 / 14 |
 | DRV8833 | IN3 / IN4 (motor B) | 21 / 42 |
 | SH1106 OLED | SDA / SCL (Wire / I2C0, addr 0x3C) | 40 / 41 |
@@ -284,6 +285,14 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
       chassis, so hmirror is now always on and flip only toggles vflip.
       Drive pad buttons use `aspect-ratio: 1/1` so Up is no longer stretched
       by the Mood/Speed panel.
+
+- [x] **Passive buzzer + mute + token nudge (2026-09-26)**: GPIO1 piezo on
+      LEDC channel 6 (timer 3 — not channel 4, which shares camera timer 2).
+      Non-blocking `Buzzer` cues for boot, camera, moods, sleep/wake, OLED
+      message, settings save, watchdog. Mute is NVS `sound_on`, checked once
+      inside `Buzzer`. Settings Sound + LED are slider switches; motor reverse
+      stays checkboxes. Dismissible Settings banner if the token is still
+      `hero`.
 
 ## In Progress
 

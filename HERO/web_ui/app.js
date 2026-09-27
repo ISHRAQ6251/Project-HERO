@@ -26,6 +26,8 @@ const state = {
   reverseRight: false,
   trimLeft: 100,
   trimRight: 100,
+  soundEnabled: true,
+  defaultToken: false,
 };
 
 const authHeaders = () => ({ "X-Auth-Token": state.token });
@@ -507,6 +509,23 @@ $("flashToggle").addEventListener("change", () => {
   setFlashlight($("flashToggle").checked);
 });
 
+function setSoundUi(on) {
+  state.soundEnabled = !!on;
+  const t = $("soundToggle");
+  if (t) t.checked = state.soundEnabled;
+}
+
+async function setSoundEnabled(on) {
+  const prev = state.soundEnabled;
+  setSoundUi(on);
+  const r = await api("/api/settings", { soundEnabled: state.soundEnabled ? 1 : 0 });
+  if (!r.ok) setSoundUi(prev);
+}
+$("soundToggle").addEventListener("change", () => {
+  haptic(10);
+  setSoundEnabled($("soundToggle").checked);
+});
+
 /* ---------------- settings modal ---------------- */
 function clampTrim(v) {
   const n = parseInt(v, 10);
@@ -525,15 +544,28 @@ function syncTrimUi() {
 
 let lastFocus = null;
 
+function tokenNudgeDismissed() {
+  return localStorage.getItem("hero_token_nudge_dismissed") === "1";
+}
+
+function syncTokenNudge() {
+  const el = $("tokenNudge");
+  if (!el) return;
+  const show = !!state.defaultToken && !tokenNudgeDismissed();
+  el.classList.toggle("hidden", !show);
+}
+
 function openSettings() {
   lastFocus = document.activeElement;
   $("setTheme").value = localStorage.getItem("hero_theme") || "dark";
   setFlashUi(state.flashlight);
+  setSoundUi(state.soundEnabled);
   $("revLeft").checked = !!state.reverseLeft;
   $("revRight").checked = !!state.reverseRight;
   syncTrimUi();
   $("setToken").value = "";
   $("settingsMsg").textContent = "";
+  syncTokenNudge();
   $("settingsModal").classList.remove("hidden");
   $("settingsClose").focus();
 }
@@ -543,8 +575,13 @@ function closeSettings() {
 }
 buzzOnPress("settingsBtn");
 buzzOnPress("settingsClose");
+buzzOnPress("tokenNudgeDismiss");
 $("settingsBtn").addEventListener("click", openSettings);
 $("settingsClose").addEventListener("click", closeSettings);
+$("tokenNudgeDismiss").addEventListener("click", () => {
+  localStorage.setItem("hero_token_nudge_dismissed", "1");
+  syncTokenNudge();
+});
 
 // Keep keyboard focus inside the modal while it is open.
 function trapFocus(e, root) {
@@ -611,12 +648,14 @@ $("settingsSave").addEventListener("click", async () => {
     reverseRight: revR ? 1 : 0,
     trimLeft: trimL,
     trimRight: trimR,
+    soundEnabled: $("soundToggle").checked ? 1 : 0,
   });
   if (mot.ok) {
     state.reverseLeft = revL;
     state.reverseRight = revR;
     state.trimLeft = trimL;
     state.trimRight = trimR;
+    state.soundEnabled = $("soundToggle").checked;
   }
 
   const newToken = $("setToken").value.trim();
@@ -625,6 +664,9 @@ $("settingsSave").addEventListener("click", async () => {
     if (r.ok) {
       state.token = newToken;
       localStorage.setItem("hero_token", newToken);
+      state.defaultToken = newToken === "hero";
+      if (!state.defaultToken) localStorage.removeItem("hero_token_nudge_dismissed");
+      syncTokenNudge();
       msg.textContent = "Token updated. Saved.";
     } else {
       msg.textContent = "Token must be at least 4 characters.";
@@ -673,7 +715,9 @@ async function pollState() {
     if (typeof s.reverseRight === "boolean") state.reverseRight = s.reverseRight;
     if (typeof s.trimLeft === "number") state.trimLeft = clampTrim(s.trimLeft);
     if (typeof s.trimRight === "number") state.trimRight = clampTrim(s.trimRight);
+    if (typeof s.soundEnabled === "boolean") state.soundEnabled = s.soundEnabled;
   }
+  if (typeof s.defaultToken === "boolean") state.defaultToken = s.defaultToken;
   if (s.mood && s.mood !== state.mood) {
     state.mood = s.mood;
     $("moodSelect").value = s.mood;
@@ -690,9 +734,12 @@ function initCockpit(data) {
   state.reverseRight = !!data.reverseRight;
   state.trimLeft = clampTrim(data.trimLeft);
   state.trimRight = clampTrim(data.trimRight);
+  state.soundEnabled = data.soundEnabled !== false;
+  state.defaultToken = !!data.defaultToken;
   $("moodSelect").value = state.mood;
   updateMsgState(!!data.messageActive);
   setFlashUi(state.flashlight);
+  setSoundUi(state.soundEnabled);
   $("dotCtrl").classList.toggle("on", true);
   if (data.camRunning === true) startVideo();
   else stopVideoLocal();

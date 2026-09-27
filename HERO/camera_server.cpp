@@ -1,6 +1,7 @@
 #include "camera_server.h"
 #include "config.h"
 #include "settings.h"
+#include "buzzer.h"
 #include <esp_camera.h>
 #include <esp_heap_caps.h>
 #include <memory>
@@ -234,6 +235,7 @@ void CameraServer::start() {
     _wantRunning.store(true);
     if (_inited) _running.store(true);
     unlock();
+    buzzer.play(BuzzerCue::CAM_ON);
 }
 
 void CameraServer::stop() {
@@ -241,6 +243,7 @@ void CameraServer::stop() {
     _wantRunning.store(false);
     _running.store(false);
     unlock();
+    buzzer.play(BuzzerCue::CAM_OFF);
 }
 
 void CameraServer::update() {

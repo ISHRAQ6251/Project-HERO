@@ -128,8 +128,22 @@
         </button>
       </div>
       <p class="muted settings-hint">Join Wi-Fi <strong>HERO</strong> (password <strong>hero1234</strong>) then open <strong>http://192.168.4.1</strong></p>
+      <div id="tokenNudge" class="token-nudge hidden" role="status">
+        <p>Access token is still the default <strong>hero</strong>. Set a new one below so anyone on the AP cannot drive the rover.</p>
+        <button type="button" id="tokenNudgeDismiss" class="ghost">Dismiss</button>
+      </div>
       <label>Flashlight</label>
-      <label class="toggle-row"><input id="flashToggle" type="checkbox"> On-board LED</label>
+      <label class="switch-row" for="flashToggle">
+        <input id="flashToggle" type="checkbox" role="switch">
+        <span class="switch" aria-hidden="true"></span>
+        On-board LED
+      </label>
+      <label>Sound</label>
+      <label class="switch-row" for="soundToggle">
+        <input id="soundToggle" type="checkbox" role="switch" checked>
+        <span class="switch" aria-hidden="true"></span>
+        Buzzer cues
+      </label>
       <label for="setTheme">Theme</label>
       <select id="setTheme">
         <option value="dark">Dark</option>

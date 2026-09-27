@@ -1,6 +1,7 @@
 #include "motor_control.h"
 #include "config.h"
 #include "settings.h"
+#include "buzzer.h"
 
 MotorControl motors;
 
@@ -25,7 +26,8 @@ void MotorControl::begin() {
     // timer = (channel / 2) % 4, so channels 0..3 use timers 0..1 only. The
     // camera XCLK uses native-IDF channel 5 = timer 2. Do NOT use channel 4:
     // it also maps to timer 2 and sharing it with the camera breaks that
-    // motor's reverse output (GPIO42) after esp_camera_init().
+    // motor's reverse output (GPIO42) after esp_camera_init(). The buzzer
+    // uses channel 6 (timer 3).
     bool okA = ledcAttachChannel(PIN_MOTOR_L_IN1, MOTOR_PWM_FREQ, MOTOR_PWM_RES, 0);
     bool okB = ledcAttachChannel(PIN_MOTOR_L_IN2, MOTOR_PWM_FREQ, MOTOR_PWM_RES, 1);
     bool okC = ledcAttachChannel(PIN_MOTOR_R_IN3, MOTOR_PWM_FREQ, MOTOR_PWM_RES, 2);
@@ -163,6 +165,9 @@ void MotorControl::update() {
         _throttle = 0;
         _steering = 0;
         _testIndex = -1;
+        unlock();
+        buzzer.play(BuzzerCue::WATCHDOG);
+        return;
     }
     unlock();
 }

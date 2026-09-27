@@ -29,6 +29,7 @@ void Settings::load() {
                                            MOTOR_TRIM_MIN, MOTOR_TRIM_MAX);
     data.trimRight    = (uint8_t)constrain(prefs.getUChar(NVS_KEY_TRIM_R, data.trimRight),
                                            MOTOR_TRIM_MIN, MOTOR_TRIM_MAX);
+    data.soundEnabled = prefs.getBool(NVS_KEY_SOUND, data.soundEnabled);
 }
 
 void Settings::save() {
@@ -42,6 +43,7 @@ void Settings::save() {
     prefs.putBool(NVS_KEY_REV_R, data.reverseRight);
     prefs.putUChar(NVS_KEY_TRIM_L, data.trimLeft);
     prefs.putUChar(NVS_KEY_TRIM_R, data.trimRight);
+    prefs.putBool(NVS_KEY_SOUND, data.soundEnabled);
     // Preferences writes commit immediately; the handle is opened once in
     // begin() and stays open. Closing/reopening here only added latency and
     // extra flash operations to every setting change.
@@ -80,6 +82,11 @@ void Settings::setFlashlight(bool on) {
 
 void Settings::setOledAnim(bool on) {
     data.oledAnim = on;
+    save();
+}
+
+void Settings::setSoundEnabled(bool on) {
+    data.soundEnabled = on;
     save();
 }
 

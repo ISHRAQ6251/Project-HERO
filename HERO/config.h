@@ -52,6 +52,14 @@
 // if your board lacks it, wire an external LED to GPIO2 through a resistor.
 #define PIN_FLASH_LED    2
 
+// Passive piezo buzzer (new). GPIO1 is unused after motor IN1 moved to GPIO47.
+// If GPIO1 is not broken out on the header, use GPIO38/39/48 and keep this
+// define in sync with the wire. LEDC channel 6 (timer 3) — motors use 0-3
+// (timers 0-1) and camera XCLK uses channel 5 (timer 2); channel 4 also maps
+// to timer 2 so it must not be used here.
+#define PIN_BUZZER       1
+#define BUZZER_LEDC_CH   6
+
 // ---------------------------------------------------------------------------
 // Display
 // ---------------------------------------------------------------------------
@@ -92,6 +100,7 @@
 #define NVS_KEY_REV_R     "rev_right"
 #define NVS_KEY_TRIM_L    "trim_l"
 #define NVS_KEY_TRIM_R    "trim_r"
+#define NVS_KEY_SOUND     "sound_on"
 #define MOTOR_TRIM_MIN    50
 #define MOTOR_TRIM_MAX    100
 

@@ -1,5 +1,6 @@
 #include "hero_eyes.h"
 #include "config.h"
+#include "buzzer.h"
 #include <math.h>
 
 HeroEyes eyes;
@@ -50,6 +51,15 @@ const char* HeroEyes::moodName() const {
 void HeroEyes::setMood(HeroMood m) {
     _mood = m;
     switch (m) {
+        case HeroMood::HAPPY:    buzzer.play(BuzzerCue::HAPPY); break;
+        case HeroMood::ANGRY:    buzzer.play(BuzzerCue::ANGRY); break;
+        case HeroMood::CURIOUS:  buzzer.play(BuzzerCue::CURIOUS); break;
+        case HeroMood::DEAD:     buzzer.play(BuzzerCue::DEAD); break;
+        case HeroMood::SLEEPY:   buzzer.play(BuzzerCue::SLEEPY); break;
+        case HeroMood::WINK:     buzzer.play(BuzzerCue::WINK); break;
+        case HeroMood::IDLE:     break;
+    }
+    switch (m) {
         case HeroMood::WINK:
             _moodUntil = millis() + 1500;
             break;
@@ -65,9 +75,13 @@ void HeroEyes::setDriving(int16_t throttle, int16_t steering) {
 }
 
 void HeroEyes::setSleeping(bool sleeping) {
+    if (_sleeping == sleeping) return;
     _sleeping = sleeping;
     if (sleeping) {
         _blinkUntil = 0;
+        buzzer.play(BuzzerCue::SLEEPY);
+    } else {
+        buzzer.play(BuzzerCue::WAKE);
     }
 }
 

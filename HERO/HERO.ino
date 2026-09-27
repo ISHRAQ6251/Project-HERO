@@ -7,6 +7,7 @@
 // Board: ESP32-S3-CAM "bare clone" N16R8 (16 MB flash, 8 MB PSRAM) with OV5640
 // Motors: DRV8833 (IN1=GPIO47, IN2=GPIO14, IN3=GPIO21, IN4=GPIO42)
 // OLED:   SH1106 128x64 over I2C Wire (SDA=GPIO40, SCL=GPIO41)
+// Buzzer: passive piezo on GPIO1 (LEDC channel 6)
 // Camera: OV5640, Freenove/generic clone pinout (GPIO 4-18, minus 14)
 //
 // See ../USER_MANUAL.md for wiring, build and configuration instructions.
@@ -20,6 +21,7 @@
 #include "wifi_helper.h"
 #include "camera_server.h"
 #include "web_server.h"
+#include "buzzer.h"
 
 void setup() {
     Serial.begin(115200);
@@ -37,6 +39,9 @@ void setup() {
 
     motors.begin();          // LEDC PWM on GPIO47/14/21/42 (safe with motors unplugged)
     Serial.println("motors ok");
+
+    buzzer.begin();          // passive piezo on GPIO1, LEDC channel 6
+    Serial.println("buzzer ok");
 
     if (displayMgr.begin()) {
         Serial.printf("oled ok (SDA=%d SCL=%d addr=0x%02X)\n",
@@ -60,6 +65,7 @@ void setup() {
     webServerMgr.begin();    // REST API + web UI + MJPEG stream
     Serial.println("web server ok");
     Serial.println("HERO ready");
+    buzzer.play(BuzzerCue::BOOT);
 }
 
 // Bring-up test: press 1-4 on the serial monitor to drive one motor input
@@ -86,6 +92,7 @@ void loop() {
     wifiHelper.update();
     displayMgr.update(millis());
     motors.update();
+    buzzer.update();
     cameraServer.update();
     motorPinTest();
     delay(10);

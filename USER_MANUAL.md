@@ -19,6 +19,7 @@ A step-by-step guide for building, uploading and driving your HERO.
 | Power for the ESP32 | USB phone-charging bank / 5 V regulator |
 | Jumper wires | for motor driver + OLED |
 | Optional: external LED + resistor | only if your board has no onboard LED on GPIO2 |
+| Passive piezo buzzer | GPIO1 (fallback GPIO38/39/48) |
 
 ### Software
 
@@ -145,6 +146,7 @@ ESP32-S3-CAM module header pins.
 | OLED **VCC** | - | 3.3 V |
 | OLED **GND** | - | GND |
 | Flash LED (onboard) | 2 | already wired; otherwise an external LED + resistor to GND |
+| Passive piezo buzzer | 1 | one leg to GPIO1, other to GND (fallback GPIO38/39/48) |
 
 ### Wiring checklist
 
@@ -160,7 +162,10 @@ ESP32-S3-CAM module header pins.
 5. **OLED** - 4 wires (VCC, GND, SDA, SCL) from GPIO 40/41. Motors and the
    DRV8833 are not required for the face or the web UI to come up.
 6. **Driver logic supply** - DRV8833 `VIN` to 3.3 V; tie `nSLEEP` and `VMODE`
-   to 3.3 V as well (enables the driver, full motor voltage).
+    to 3.3 V as well (enables the driver, full motor voltage).
+7. **Buzzer** - one leg of the passive piezo to GPIO1, the other to GND.
+    If GPIO1 is not on your header, use GPIO38/39/48 and change `PIN_BUZZER`
+    in `config.h`.
 
 ### Power
 
@@ -339,8 +344,11 @@ address plus the hotspot password. Change the access token later in Settings.
 Open the gear in the top bar. On a portrait phone the gear is the right-most
 icon (camera, mood, then gear).
 
-- **Flashlight** - checkbox for the on-board LED. Takes effect immediately;
+- **Flashlight** - slider switch for the on-board LED. Takes effect immediately;
   you do not need to tap Save. The rover remembers the last state.
+- **Sound** - slider switch for the piezo buzzer cues (boot, camera, moods,
+  sleep/wake, messages, settings save, motor watchdog). Off mutes every cue.
+  Immediate; remembered on the rover. Default on.
 - **Theme** - dark / light. Stored in the browser, not on the rover.
 - **Reverse left / right motor** - flip a channel in software if a motor
   (or the whole rover) drives the wrong way. Saved on the rover when you tap
@@ -350,7 +358,8 @@ icon (camera, mood, then gear).
   faster than the other. Lower the faster side until forward tracks straight.
   Saved on the rover.
 - **Change access token** - pick a new login password (min 4 characters). Write
-  it down - it is stored on the rover.
+  it down - it is stored on the rover. If the token is still the default
+  `hero`, Settings shows a dismissible reminder to change it.
 
 ### 5.7 Hotspot reminder
 

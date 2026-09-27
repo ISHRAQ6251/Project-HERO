@@ -15,6 +15,7 @@ struct RoverSettings {
     bool reverseRight = true;  // this build's right motor is wired inverted
     uint8_t trimLeft = 100;
     uint8_t trimRight = 100;
+    bool soundEnabled = true;
 };
 
 class Settings {
@@ -32,6 +33,7 @@ public:
     void setFlashlight(bool on);
     void setOledAnim(bool on);
     void setMotorCal(bool reverseLeft, bool reverseRight, uint8_t trimLeft, uint8_t trimRight);
+    void setSoundEnabled(bool on);
 
 private:
     void writeString(const char* key, const char* value);

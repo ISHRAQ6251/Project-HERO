@@ -66,6 +66,7 @@ boot to help you spot a mismatch.
 | DRV8833 IN3 / IN4 (motor B) | 21 / 42 | DRV8833 BIN1/BIN2 |
 | OLED SDA / SCL | 40 / 41 | SH1106 SDA/SCL (not 35/36 — those are PSRAM) |
 | Flashlight LED | 2 | onboard LED (or external LED + resistor) |
+| Passive buzzer | 1 | piezo (fallback GPIO38/39/48) |
 
 The full wiring checklist, power layout (separate motor battery!) and the
 pin-avoidance list are in the User Manual (`USER_MANUAL.md`).

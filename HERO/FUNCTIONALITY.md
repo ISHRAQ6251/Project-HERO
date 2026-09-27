@@ -33,8 +33,11 @@ moods, driving and messages.
   (`DRIVE_WATCHDOG_MS`) the motors coast automatically. A dropped connection,
   closed tab or killed app can therefore never leave the rover driving itself.
 - Flashlight toggle driving the on-board LED on GPIO2. The control lives in
-  Settings as an immediate checkbox (does not wait for Save). State is stored
+  Settings as an immediate slider switch (does not wait for Save). State is stored
   in NVS.
+- Passive piezo buzzer on GPIO1 (LEDC channel 6). Non-blocking cues for boot,
+  camera on/off, moods, sleep/wake, OLED messages, settings save, and the
+  motor watchdog. Mute is NVS `sound_on` (default on), checked inside `Buzzer`.
 - Mood system: six moods (Happy, Angry, Curious, Dead, Sleepy, Wink) shown both
   in a quick popup and a dropdown. A mood override lasts ~4 s (Wink 1.5 s)
   then returns to the idle face.
@@ -67,10 +70,12 @@ Smartphone-first dark UI with a light theme option (saved in the browser):
 - Bottom card: "Message to OLED..." input with inline Send and a clear button,
   plus a live status region for screen readers.
 - Mood popup: a white rounded card under the header with the six moods.
-- Settings modal: hotspot reminder, flashlight toggle (immediate), theme,
-  reverse-left / reverse-right motor toggles, left/right speed trim (50-100%,
-  persisted in NVS), optional new access token. Theme is stored in the browser;
-  motor reverse/trim and the token are stored on the rover.
+- Settings modal: hotspot reminder, flashlight and sound slider switches
+  (immediate), theme, reverse-left / reverse-right motor checkboxes, left/right
+  speed trim (50-100%, persisted in NVS), optional new access token, and a
+  dismissible nudge if the token is still the default. Theme is stored in the
+  browser; motor reverse/trim, sound, flashlight and the token are stored on
+  the rover.
 
 ## API
 
@@ -92,13 +97,14 @@ All control endpoints (except `/api/info`, `/api/auth`, `/stream` and
 | `/api/mood` | POST | yes | `mood` | `happy` `angry` `curious` `dead` `sleepy` `wink` `idle` |
 | `/api/message` | POST | yes | `text` | Show message; empty `text` clears |
 | `/api/flash` | POST | yes | `on` | 0/1 flashlight (GPIO2, saved in NVS) |
-| `/api/settings` | POST | yes | `oledAnim`, `reverseLeft`, `reverseRight`, `trimLeft`, `trimRight` | eyes animation, per-motor reverse, and PWM trim (50-100) |
+| `/api/settings` | POST | yes | `oledAnim`, `reverseLeft`, `reverseRight`, `trimLeft`, `trimRight`, `soundEnabled` | eyes animation, per-motor reverse, PWM trim (50-100), buzzer mute |
 | `/api/camera` | POST | yes | `flip`, `on` | `flip` 0/1 vflip only (upside-down mount). Horizontal mirror is always on so stream L/R matches the chassis. `on` 1 starts the sensor, `on` 0 requests de-init. Init/deinit run in `CameraServer::update()` from `loop()` |
 | `/api/token` | POST | yes | `token` | Change access token (min 4 chars) |
 
 `/api/state` returns: `throttle`, `steering`, `mood`, `sleeping`,
 `flashlightOn`, `oledAnim`, `camResolution`, `camQuality`, `camFlip`,
 `camRunning`, `reverseLeft`, `reverseRight`, `trimLeft`, `trimRight`,
+`soundEnabled`, `defaultToken`,
 `connected`, `apMode`, `ip`, `messageActive`, `message`.
 
 `camRunning` is `cameraServer.wanted()`, not the sensor's momentary

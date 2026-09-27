@@ -1,6 +1,7 @@
 #include "display_manager.h"
 #include "config.h"
 #include "settings.h"
+#include "buzzer.h"
 
 DisplayManager displayMgr;
 
@@ -49,8 +50,8 @@ bool DisplayManager::begin() {
 }
 
 void DisplayManager::setMood(HeroMood mood) {
-    eyes.setMood(mood);
     notifyActivity();
+    eyes.setMood(mood);
 }
 
 void DisplayManager::showMessage(const char* text) {
@@ -58,6 +59,7 @@ void DisplayManager::showMessage(const char* text) {
     _message[sizeof(_message) - 1] = 0;
     eyes.setCompact(true);          // shrink + raise eyes to make room
     notifyActivity();
+    buzzer.play(BuzzerCue::MESSAGE);
 }
 
 void DisplayManager::clearMessage() {
