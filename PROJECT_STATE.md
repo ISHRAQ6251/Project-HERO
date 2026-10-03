@@ -71,7 +71,7 @@ stole that port and camera probe failed with 0x103.
   3.5.0 (maintainer ESP32Async) for chunked MJPEG. Not the lacamera/ESPHome
   `ESPAsyncWebServer` 3.1.0 listing (that one needs a mbedTLS `_ret` patch).
 - OV5640: PIXFORMAT_JPEG, XCLK 20 MHz, fb in PSRAM, fb_count 3, grab LATEST;
-  default stream SVGA (800x600), quality from NVS (default 12), all adjustable.
+  default stream VGA (640x480), quality from NVS (default 12), all adjustable.
 - OLED face drawn procedurally with Adafruit_GFX + SH1106 I2C (no bitmaps).
 - USER-CONFIRMED: captures go to the browser (stills via /capture at the live
   stream size, clips recorded client-side via MediaRecorder); no SD dependency.
@@ -102,11 +102,15 @@ Behavioral defaults chosen (recorded, not asked): auth password default `hero`
 (NVS, changeable from UI); sleep expression after 60 s of no driving input
 (SLEEP_TIMEOUT_MS, was 600 s in the old repo — shortened for lab demos); mood
 override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
-~1.8-4.3 s; message box persists until cleared; default stream resolution SVGA
-800x600.
+~1.8-4.3 s; message box persists until cleared; default stream resolution VGA
+640x480.
 
 ## Completed
 
+- [x] **Camera resolution default (2026-10-03)**: the raw enum number 9 actually
+      selected HVGA; default now uses `FRAMESIZE_VGA` (640x480). Renamed the NVS
+      key to `cam_res2` so saved values cannot override the new default. Rebuild
+      and reflash required.
 - [x] Read project brief (full content available from git commit `0cbd870`).
 - [x] Read every file of the old repository (OV2640-era build) for context.
 - [x] Confirmed `PROJECT_STATE.md` did not exist -> treated as new project.

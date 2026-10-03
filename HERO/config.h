@@ -91,7 +91,9 @@
 // ---------------------------------------------------------------------------
 #define NVS_NAMESPACE     "hero"
 #define NVS_KEY_TOKEN     "auth_token"
-#define NVS_KEY_RES       "cam_res"
+// Settings::save() writes every field and persisted old value 9. A new key
+// prevents it overriding VGA on flashed boards; the old key is orphaned.
+#define NVS_KEY_RES       "cam_res2"
 #define NVS_KEY_QUALITY   "cam_quality"
 #define NVS_KEY_FLIP      "cam_flip"
 #define NVS_KEY_FLASH     "flash_on"

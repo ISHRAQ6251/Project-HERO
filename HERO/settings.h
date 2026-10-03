@@ -1,11 +1,12 @@
 #pragma once
 
 #include <Arduino.h>
+#include <esp_camera.h>
 
 struct RoverSettings {
     char authToken[33] = {0};
 
-    int camResolution = 9;    // framesize_t: 9 = FRAMESIZE_SVGA (800x600)
+    int camResolution = (int)FRAMESIZE_VGA; // framesize_t enum value: VGA (640x480)
     int camQuality = 12;      // JPEG quality 10..63 (lower = better)
     bool camFlip = false;     // vflip only (upside-down mount); hmirror is always on
 

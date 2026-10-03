@@ -9,7 +9,7 @@ moods, driving and messages.
 
 ## Feature list
 
-- Live MJPEG video stream (`/stream`), SVGA 800x600 default, quality configurable
+- Live MJPEG video stream (`/stream`), VGA 640x480 default, quality configurable
   via NVS; XCLK 20 MHz, PSRAM frame buffers, `CAMERA_GRAB_LATEST` for low latency.
   Each connected phone gets its own stream packetizer, so a second viewer does
   not corrupt the first.
@@ -18,8 +18,8 @@ moods, driving and messages.
   are free. Start POSTs `on=1` and re-inits the sensor from `loop()` (never on
   the async web task). `/api/state` reports `camRunning` from `cameraServer.wanted()`.
 - Browser-side captures:
-  - Photo: `/capture` grabs a JPEG at the live stream resolution (SVGA default),
-    downloaded as `hero_<timestamp>.jpg`.
+  - Photo: `/capture` grabs a JPEG at the live stream resolution (VGA 640x480
+    default), downloaded as `hero_<timestamp>.jpg`.
   - Clip: recorded client-side with MediaRecorder (VP9/VP8 WebM) by drawing the
     stream to a hidden canvas; downloaded as `hero_clip.webm`. No SD card used.
 - Differential drive: Mood/Speed panel spans the top-left two thirds, Up is
@@ -172,7 +172,7 @@ start and gaze in the steering direction.
 
 ## Camera notes
 
-- Default stream: SVGA (800x600), JPEG quality 12, 3 PSRAM frame buffers,
+- Default stream: VGA (640x480), JPEG quality 12, 3 PSRAM frame buffers,
   `CAMERA_GRAB_LATEST`, XCLK 20 MHz. Quality is unchanged; extra fb and
   memcpy-batched MJPEG copies cut CPU without shrinking the JPEG.
 - Boot does **not** init the sensor. `wanted()` is false until the cockpit

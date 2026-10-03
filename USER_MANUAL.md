@@ -333,7 +333,7 @@ address plus the hotspot password. Change the access token later in Settings.
 
 ### 5.5 Photos and clips
 
-- **Photo** - a still is captured at the live stream resolution (800x600 by
+- **Photo** - a still is captured at the live stream resolution (VGA 640x480 by
   default) and downloads as `hero_<timestamp>.jpg`. The camera must be running.
   The phone plays a short double-click shutter on tap.
 - **Clip** - recording is done on your phone's browser (WebM), so no SD card is

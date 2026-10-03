@@ -20,14 +20,14 @@ message-to-OLED box.
 
 ## Features
 
-- **Live MJPEG video** streamed to the phone (SVGA 800x600 default, 3 PSRAM
+- **Live MJPEG video** streamed to the phone (VGA 640x480 default, 3 PSRAM
   frame buffers, low-latency grab mode). Several phones can watch at once;
   each `/stream` client has its own packetizer.
 - **Camera start/stop**: the sensor stays off at boot. A header button inits
   the OV5640 from the Arduino `loop()` and de-inits it on stop.
-- **Photo & clip capture**: stills at the live stream size (SVGA default) and
-  client-side WebM clips - no SD card required. Photo/clip play short shutter
-  tones on the phone.
+- **Photo & clip capture**: stills at the live stream size (VGA 640x480
+  default) and client-side WebM clips - no SD card required. Photo/clip play
+  short shutter tones on the phone.
 - **Differential drive**: hold-to-move steering/throttle pads with arcade
   throttle+steering mixing and a 0-255 speed slider. Left/right in the UI
   are mapped so the physical rover turns the expected way.
