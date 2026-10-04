@@ -71,19 +71,22 @@ stole that port and camera probe failed with 0x103.
   3.5.0 (maintainer ESP32Async) for chunked MJPEG. Not the lacamera/ESPHome
   `ESPAsyncWebServer` 3.1.0 listing (that one needs a mbedTLS `_ret` patch).
 - OV5640: PIXFORMAT_JPEG, XCLK 20 MHz, fb in PSRAM, fb_count 3, grab LATEST;
-  default stream VGA (640x480), quality from NVS (default 12), all adjustable.
+  default stream VGA (640x480), quality from NVS (default 14).
 - OLED face drawn procedurally with Adafruit_GFX + SH1106 I2C (no bitmaps).
 - USER-CONFIRMED: captures go to the browser (stills via /capture at the live
   stream size, clips recorded client-side via MediaRecorder); no SD dependency.
 - USER-CONFIRMED (2026-09-01): AP-only. Always SoftAP `HERO` / `hero1234` at
-  192.168.4.1. No station-mode / lab-router provisioning.
+  192.168.4.1, channel 1, one connected phone maximum. Requests 20 dBm max
+  transmit power (subject to regulatory/PHY limits). No station-mode /
+  lab-router provisioning.
 - USER-CONFIRMED: default auth password `hero`, changeable from settings modal.
 - Settings: flashlight (immediate GPIO2 LED, NVS `flash_on`), theme (browser),
   reverse-left / reverse-right motor, left/right PWM trim 50-100% (NVS
   `trim_l` / `trim_r`), optional new token.
 - Drive mixing: firmware `left = throttle + steering`, `right = throttle -
   steering`. The cockpit sends Left as positive steering and Right as negative
-  so the physical rover turns the labelled way.
+  so the physical rover turns the labelled way. Motor PWM is 20 kHz, 10-bit;
+  the UI speed slider ranges 65-100 and maps to levels 1-10 (65-100% PWM).
 - Camera: stays off at boot (no `esp_camera_init` until `/api/camera` `on=1`).
   Header start/stop POSTs `/api/camera` `on=1/0`. Init/deinit run in
   `cameraServer.update()` from `loop()`, not the async web task. `/api/state`
@@ -107,10 +110,50 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
 
 ## Completed
 
+- [x] **Motor PWM and speed control range (2026-10-03)**: retained 20 kHz PWM,
+      changed motor outputs from 8-bit to 10-bit (0-1023), and changed the
+      cockpit speed slider initially to 0-100%, linearly mapped to PWM. The
+      later threshold and integer-level entries below supersede that slider
+      range. Updated motor test API and docs; rebuild and reflash required.
+- [x] **Motor speed slider threshold (2026-10-03)**: changed the cockpit slider
+      to 65-100, mapped linearly to speed levels 1-10 and 65-100% PWM after
+      motors were observed to start above 65; rebuild and reflash required.
+- [x] **Integer speed slider levels (2026-10-03)**: quantized the mapped speed
+      to integer levels 1-10 and show only the current level beside the slider.
+- [x] **Final review and documentation alignment (2026-10-04)**: corrected
+      settings-save failure feedback, reject malformed settings inputs without
+      partial application, and aligned the manual/functionality reference with
+      the integer speed levels and current validation behavior. Firmware/UI
+      build and syntax checks passed.
+- [x] **Wink eye animation (2026-10-04)**: added a brief close-hold-open wink
+      using a randomly selected eye; updated the user and functionality docs.
+- [x] **Shock expression animation (2026-10-04)**: added a pulsing filled O
+      mouth, alternating gaze, and subtle brow movement; updated docs.
+- [x] **Shock mood rename (2026-10-04)**: renamed the UI/API/firmware mood
+      to Shock; made its pulsing O mouth filled and extended the
+      Wink closed-eye hold for better visibility.
+- [x] **Final firmware review and defaults (2026-10-03)**: restored JPEG quality
+      14 and original NVS keys `cam_res` / `cam_quality` after the user erased
+      NVS. Fixed OLED animation timer rollover, strict integer parsing for drive
+      and motor-test requests, and enforce the token's 4–32 byte storage limit.
+- [x] **Wi-Fi channel and transmit power (2026-10-03)**: set SoftAP channel to
+      1 and request the ESP32-S3 maximum 20 dBm TX-power setting. Runtime power
+      remains subject to regulatory and PHY limits; reflash to apply.
+- [x] **Camera image quality adjustment (2026-10-03)**: slightly increased
+      JPEG image quality by changing the default from 14 to 13. Renamed the
+      quality NVS key to `cam_quality4` so saved test values do not override
+      the new default; this temporary change was later reversed.
+- [x] **Camera image quality adjustment (2026-10-03)**: slightly increased
+      JPEG image quality by changing the default from 15 to 14. Renamed the
+      quality NVS key to `cam_quality3`; this key change was later reversed
+      after NVS erasure.
+- [x] **SoftAP streaming headroom (2026-10-03)**: fixed the AP to Wi-Fi channel
+      13 and limited it to one connected station. This channel setting was
+      superseded by the later channel 1 configuration.
 - [x] **Camera resolution default (2026-10-03)**: the raw enum number 9 actually
       selected HVGA; default now uses `FRAMESIZE_VGA` (640x480). Renamed the NVS
-      key to `cam_res2` so saved values cannot override the new default. Rebuild
-      and reflash required.
+      key to `cam_res2` temporarily; the original `cam_res` key was restored
+      after the user erased NVS.
 - [x] Read project brief (full content available from git commit `0cbd870`).
 - [x] Read every file of the old repository (OV2640-era build) for context.
 - [x] Confirmed `PROJECT_STATE.md` did not exist -> treated as new project.
@@ -305,7 +348,8 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
 
 ## In Progress
 
-- None. Rebuild + reflash needed for firmware/UI on device.
+- None. The current source has been build-verified; reflash if the latest
+  firmware/UI changes have not yet been deployed to the rover.
 
 ## Open Questions For The User
 

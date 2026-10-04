@@ -7,7 +7,7 @@ struct RoverSettings {
     char authToken[33] = {0};
 
     int camResolution = (int)FRAMESIZE_VGA; // framesize_t enum value: VGA (640x480)
-    int camQuality = 12;      // JPEG quality 10..63 (lower = better)
+    int camQuality = 14;      // JPEG quality 10..63 (lower = better; higher = less data)
     bool camFlip = false;     // vflip only (upside-down mount); hmirror is always on
 
     bool flashlightOn = false;

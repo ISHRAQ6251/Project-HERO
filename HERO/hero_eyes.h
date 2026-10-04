@@ -12,7 +12,7 @@
 enum class HeroMood : uint8_t {
     HAPPY = 0,
     ANGRY,
-    CURIOUS,
+    SHOCK,
     DEAD,
     SLEEPY,
     WINK,
@@ -45,7 +45,7 @@ private:
         NEUTRAL,    // gentle neutral look with occasional blinks + saccades
         LOOK,       // active look-around (wider saccades)
         HAPPY,      // content squint + smile
-        CURIOUS,    // tilted curious peek + small mouth
+        INQUISITIVE, // tilted, inquisitive peek
         SURPRISE,   // wide eyes + open mouth
         SUSPICIOUS, // narrowed eyes + slight frown
         DOZE,       // heavy lids (brief doze-off)
@@ -95,8 +95,10 @@ private:
     uint32_t _nextSaccadeAt = 0;
     uint32_t _moodUntil = 0;
     uint32_t _lastUpdate = 0;
+    uint32_t _winkStartedAt = 0;
     int16_t _targetSaccadeX = 0;
     int16_t _targetSaccadeY = 0;
+    bool _winkLeft = false;
 
     bool     _wasDriving = false;
     uint8_t  _drivingKick = 0;   // excitement burst on drive start

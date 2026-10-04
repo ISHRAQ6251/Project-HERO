@@ -12,7 +12,7 @@ static const Buzzer::Step kCamOn[]     = {{1200, 50}, {0, 0}};
 static const Buzzer::Step kCamOff[]   = {{400, 70}, {0, 0}};
 static const Buzzer::Step kHappy[]    = {{784, 70}, {988, 80}, {1175, 90}, {0, 30}, {1568, 150}, {0, 0}};
 static const Buzzer::Step kAngry[]    = {{175, 50}, {0, 20}, {175, 50}, {0, 0}};
-static const Buzzer::Step kCurious[]  = {{880, 40}, {1320, 80}, {0, 0}};
+static const Buzzer::Step kShock[]    = {{880, 40}, {1320, 80}, {0, 0}};
 static const Buzzer::Step kDead[]     = {{698, 60}, {523, 60}, {392, 70}, {262, 120}, {0, 0}};
 static const Buzzer::Step kSleepy[]   = {{330, 120}, {262, 180}, {0, 0}};
 static const Buzzer::Step kWink[]     = {{1400, 30}, {0, 0}};
@@ -110,7 +110,7 @@ const Buzzer::Step* Buzzer::sequence(BuzzerCue cue) const {
         case BuzzerCue::CAM_OFF:   return kCamOff;
         case BuzzerCue::HAPPY:     return kHappy;
         case BuzzerCue::ANGRY:     return kAngry;
-        case BuzzerCue::CURIOUS:   return kCurious;
+        case BuzzerCue::SHOCK:     return kShock;
         case BuzzerCue::DEAD:      return kDead;
         case BuzzerCue::SLEEPY:    return kSleepy;
         case BuzzerCue::WINK:      return kWink;

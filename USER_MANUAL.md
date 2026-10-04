@@ -214,8 +214,9 @@ arduino-cli upload -p /dev/ttyACM0 \
 Replace `/dev/ttyACM0` with the port from the previous step.
 
 You should see the progress bar run and finish with "Hard resetting...". The
-rover then boots. **First boot after flashing is slow** (the SoftAP, camera and
-web server all start up) - give it ~30 seconds, then join the `HERO` network.
+rover then boots. Give the SoftAP and web server a few seconds to start, then
+join the `HERO` network. The camera sensor stays off until you start it from
+the cockpit.
 
 **If upload hangs at "Connecting...":** the board is not in download mode (BOOT
 was not held). Try again, or check the cable. Some boards with USB-C sockets
@@ -231,7 +232,9 @@ arduino-cli monitor -p /dev/ttyACM0 --config baudrate=115200
 ```
 
 You should see `HERO boot`, then `settings ok` / `motors ok` / `oled ok` (or
-`oled missing`), `wifi ...`, `camera ok` (or a camera error) and `HERO ready`.
+`oled missing`), `wifi ...`, `camera idle (start from UI)` and `HERO ready`.
+Camera initialization messages appear only after you start the camera in the
+cockpit.
 If you only ever see the ROM dump (`ESP-ROM:esp32s3-...` / `rst:0x8
 (TG1WDT_SYS_RST)`) the chip is crashing before the sketch prints — reflash with
 `FlashSize=16M,PSRAM=opi` and confirm the OLED is on GPIO 40/41, not 35/36.
@@ -269,7 +272,10 @@ or let the IDE/arduino-cli handle offsets.
 
 ### 5.1 Connect to the rover
 
-The rover is its own Wi-Fi hotspot. No lab router, no SSID/password setup.
+The rover is its own Wi-Fi hotspot on channel 1. It accepts one connected
+phone at a time and requests the ESP32-S3's maximum 20 dBm transmit-power
+setting, subject to regulatory and PHY limits. No lab router or SSID/password
+setup is needed.
 
 1. Power the rover.
 2. On your phone, join the Wi-Fi network **`HERO`** (password **`hero1234`**).
@@ -314,10 +320,14 @@ address plus the hotspot password. Change the access token later in Settings.
   itself.
 - **Message to OLED** - type text and tap **Send**; the message appears on the
   rover's OLED. Tap the clear button to restore the face.
-- **Mood** - header popup or the dropdown: Happy, Angry, Curious, Dead, Sleepy,
-  Wink. The face shows the mood for about 4 seconds, then returns to idle.
-- **Speed** - slider from 0 to 255; controls how fast the motors run. Start low
-  on a bench and raise it once you can control the rover.
+- **Mood** - header popup or the dropdown: Happy, Angry, Shock, Dead, Sleepy,
+  Wink. The face shows a mood for about 4 seconds, then returns to idle. Wink
+  briefly closes one randomly selected eye, holds it shut, then opens it again.
+  Shock pulses a filled O-shaped mouth while glancing from side to side.
+- **Speed** - slider from 65 to 100, mapped to integer speed levels 1 to 10
+  and 65-100% of the 10-bit motor PWM. The current integer level is shown.
+  The minimum is set to the observed motor start threshold. Test on a bench
+  before driving.
 
 ### 5.4 What the OLED shows
 
@@ -334,7 +344,8 @@ address plus the hotspot password. Change the access token later in Settings.
 ### 5.5 Photos and clips
 
 - **Photo** - a still is captured at the live stream resolution (VGA 640x480 by
-  default) and downloads as `hero_<timestamp>.jpg`. The camera must be running.
+  default, JPEG quality 14) and downloads as `hero_<timestamp>.jpg`. The camera
+  must be running.
   The phone plays a short double-click shutter on tap.
 - **Clip** - recording is done on your phone's browser (WebM), so no SD card is
   needed. It downloads as `hero_clip.webm` when you stop recording. The stream
@@ -360,9 +371,13 @@ icon (camera, mood, then gear).
 - **Left / right trim** - scale that motor's PWM (50-100%) if one N20 is
   faster than the other. Lower the faster side until forward tracks straight.
   Saved on the rover.
-- **Change access token** - pick a new login password (min 4 characters). Write
-  it down - it is stored on the rover. If the token is still the default
+- **Change access token** - pick a new login token (4-32 bytes). Write it down
+  - it is stored on the rover. If the token is still the default
   `hero`, Settings shows a dismissible reminder to change it.
+
+If a settings save cannot reach the rover, the page reports the failure and
+keeps the settings dialog open so you can retry. The theme is stored locally in
+the browser; other listed settings are stored on the rover.
 
 ### 5.7 Hotspot reminder
 
@@ -384,10 +399,10 @@ board and wait a few seconds, then scan for Wi-Fi again.
 | No image in the video panel, CAM dot red | Check the camera ribbon is seated; verify GPIO settings match your board; try reducing XCLK to 10 MHz (see camera_server.cpp). If the overlay says "Camera stopped", tap the camera icon in the top bar to start the sensor |
 | Camera button does nothing / stream 503 | Wait a second after Start - the OV5640 re-inits in the Arduino loop, not instantly. Reflash if Stop only blanks the picture but the sensor stays warm (this build de-inits it) |
 | Settings gear missing or unreachable in portrait | Flashlight was moved out of the header into Settings. Top bar is camera, mood, gear. Reflash this build |
-| Flashlight not in the top bar | Open Settings (gear) and use the **On-board LED** checkbox; it toggles immediately |
-| Motors do not spin | Check DRV8833 power (VM/GND), `nSLEEP` tied to 3.3 V, and IN wires; try 100 on the speed slider |
+| Flashlight not in the top bar | Open Settings (gear) and use the **On-board LED** switch; it toggles immediately |
+| Motors do not spin | Check DRV8833 power (VM/GND), `nSLEEP` tied to 3.3 V, and IN wires; raise the speed slider (65-100) until the motors turn |
 | One motor spins backwards | Settings > Reverse left/right motor (or swap that motor's two wires) |
-| A wheel turns one way but **never** the other (e.g. reverse and one turn only move the other wheel) | One motor input is not switching. Test each input over Wi-Fi without the serial monitor: open `http://192.168.4.1/api/pintest?token=hero&pin=0&speed=200` in the phone browser and cycle `pin` = 0,1,2,3. `pin` maps to 0=L_IN1/GPIO47, 1=L_IN2/GPIO14, 2=R_IN3/GPIO21, 3=R_IN4/GPIO42. Each call nudges one wheel for ~0.6 s and replies with the PWM `duty` read back from the pin. `duty:0` means the pin never attached in firmware (reflash / pin conflict); `duty:200` but no motion means a bad jumper, DRV8833 channel, or GPIO. |
+| A wheel turns one way but **never** the other (e.g. reverse and one turn only move the other wheel) | One motor input is not switching. Test each input over Wi-Fi without the serial monitor: open `http://192.168.4.1/api/pintest?token=hero&pin=0&speed=768` in the phone browser and cycle `pin` = 0,1,2,3. `pin` maps to 0=L_IN1/GPIO47, 1=L_IN2/GPIO14, 2=R_IN3/GPIO21, 3=R_IN4/GPIO42. Each call nudges one wheel for ~0.6 s and replies with the PWM `duty` read back from the pin. `duty:0` means the pin never attached in firmware (reflash / pin conflict); `duty:768` but no motion means a bad jumper, DRV8833 channel, or GPIO. |
 | Above test shows an input that never switches | First swap the two input wires of that motor channel at the DRV8833 (e.g. AIN1/AIN2) and re-test. If the dead direction follows the driver input rather than the ESP32 pin, the DRV8833 half-bridge is faulty - replace the driver. If instead the fault follows the ESP32 pin, move that one IN wire to a free header GPIO and update the matching `PIN_MOTOR_*` in `config.h`. Recommended free pins: **GPIO47** (alt GPIO38/39/48). Avoid GPIO0/3 (strapping), 19/20 (USB), 26-37 (flash/OPI PSRAM), 43/44 (UART) and 45/46 (strapping). On this build the test first pointed at `L_IN1`, but the wire-swap proved GPIO1 was fine and the DRV8833 was faulty; `L_IN1` was left on GPIO47 (`PIN_MOTOR_L_IN1 47`). |
 | Motors spin but the rover turns the wrong way | This build maps Left to a left turn and Right to a right turn in the UI. If it is still wrong, reverse both motors in Settings, or swap left/right channels (AO/BO) |
 | Rover drifts left/right when going straight | Settings > lower Left/Right trim on the faster motor until it tracks straight |
@@ -396,7 +411,7 @@ board and wait a few seconds, then scan for Wi-Fi again.
 | Flickering / purple video | Lower camera XCLK from 20 MHz to 10 MHz in `camera_server.cpp` |
 | Face shows "AP: 192.168.4.1" | Normal - join **HERO** and open that address |
 | Video freezes briefly, CAM dot red, then recovers | The stream drops and auto-reconnects after ~2.5 s - normal if the camera is busy capturing a photo; avoid tapping photo while driving |
-| Live view frozen / static frame on iPhone Safari | Older iOS Safari renders only the first MJPEG frame; use Chrome on Android or install Chrome on the iPhone |
+| Live view frozen / static frame on iPhone | Older iOS browser versions may render only the first MJPEG frame; try a current browser/device and use Chrome on Android if available |
 | CAM dot turns red while the picture is still moving | Reflash this build - the CAM lamp now stays green for the life of the MJPEG connection, not just the first frame |
 | Icons show as garbage / boxes | Reflash this build - the UI uses SVG icons instead of emoji |
 | Photo is only valid in the top half, rest is garbage | Reflash this build - capture stays at stream resolution instead of jumping to UXGA |

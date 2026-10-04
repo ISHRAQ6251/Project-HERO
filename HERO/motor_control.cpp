@@ -41,16 +41,16 @@ void MotorControl::begin() {
 }
 
 void MotorControl::drive(int16_t throttle, int16_t steering) {
-    throttle = constrain(throttle, -255, 255);
-    steering = constrain(steering, -255, 255);
+    throttle = constrain(throttle, -(int16_t)MOTOR_PWM_MAX, (int16_t)MOTOR_PWM_MAX);
+    steering = constrain(steering, -(int16_t)MOTOR_PWM_MAX, (int16_t)MOTOR_PWM_MAX);
     lock();
     _throttle = throttle;
     _steering = steering;
     _lastCmdAt = millis();
     _testIndex = -1;  // a real drive command cancels any bring-up pin test
 
-    int16_t left = constrain(throttle + steering, -255, 255);
-    int16_t right = constrain(throttle - steering, -255, 255);
+    int16_t left = constrain(throttle + steering, -(int16_t)MOTOR_PWM_MAX, (int16_t)MOTOR_PWM_MAX);
+    int16_t right = constrain(throttle - steering, -(int16_t)MOTOR_PWM_MAX, (int16_t)MOTOR_PWM_MAX);
 
     setLeft(left);
     setRight(right);
@@ -61,7 +61,7 @@ static int16_t scaleTrim(int16_t speed, uint8_t trim) {
     if (speed == 0) return 0;
     int32_t scaled = (int32_t)speed * constrain((int)trim, MOTOR_TRIM_MIN, MOTOR_TRIM_MAX) / 100;
     if (scaled == 0) scaled = (speed > 0) ? 1 : -1;
-    return (int16_t)constrain(scaled, -255, 255);
+    return (int16_t)constrain(scaled, -(int32_t)MOTOR_PWM_MAX, (int32_t)MOTOR_PWM_MAX);
 }
 
 void MotorControl::setLeft(int16_t speed) {
@@ -100,7 +100,7 @@ int16_t MotorControl::steering() {
 
 uint32_t MotorControl::testPin(uint8_t index, int16_t value) {
     if (index > 3) return 0;
-    value = constrain(value, -255, 255);
+    value = constrain(value, -(int16_t)MOTOR_PWM_MAX, (int16_t)MOTOR_PWM_MAX);
     lock();
     setLeft(0);
     setRight(0);
@@ -122,7 +122,7 @@ uint32_t MotorControl::testPin(uint8_t index, int16_t value) {
 }
 
 void MotorControl::setPin(uint8_t inA, uint8_t inB, int16_t speed) {
-    speed = constrain(speed, -255, 255);
+    speed = constrain(speed, -(int16_t)MOTOR_PWM_MAX, (int16_t)MOTOR_PWM_MAX);
     if (speed > 0) {
         ledcWrite(inA, speed);
         ledcWrite(inB, 0);

@@ -20,16 +20,17 @@ message-to-OLED box.
 
 ## Features
 
-- **Live MJPEG video** streamed to the phone (VGA 640x480 default, 3 PSRAM
-  frame buffers, low-latency grab mode). Several phones can watch at once;
-  each `/stream` client has its own packetizer.
+- **Live MJPEG video** streamed to the phone (VGA 640x480 default, JPEG quality
+  14, 3 PSRAM frame buffers, low-latency grab mode). The SoftAP accepts one
+  connected phone to reserve Wi-Fi bandwidth for the stream.
 - **Camera start/stop**: the sensor stays off at boot. A header button inits
   the OV5640 from the Arduino `loop()` and de-inits it on stop.
 - **Photo & clip capture**: stills at the live stream size (VGA 640x480
   default) and client-side WebM clips - no SD card required. Photo/clip play
   short shutter tones on the phone.
 - **Differential drive**: hold-to-move steering/throttle pads with arcade
-  throttle+steering mixing and a 0-255 speed slider. Left/right in the UI
+  throttle+steering mixing and a 65-100 slider quantized to integer speed
+  levels 1-10 (65-100% PWM); the current level is shown. Left/right in the UI
   are mapped so the physical rover turns the expected way.
 - **Auto-stop safety watchdog**: the rover coasts the motors ~1.5 s after the
   last drive command, so a dropped connection or closed tab can never leave it
@@ -38,9 +39,12 @@ message-to-OLED box.
   script), six moods, driving reactions and a sleep state; plus a persistent
   message-to-OLED box.
 - **Flashlight** toggle on the onboard LED (Settings, takes effect immediately).
-- **Access-token auth** (default `hero`), changeable from the settings panel.
-- **Own hotspot**: always SoftAP `HERO` / `hero1234`. Phone joins it and opens
-  `http://192.168.4.1`. No lab router, no provisioning.
+- **Access-token auth** (default `hero`), changeable from the settings panel
+  (4-32 bytes).
+- **Own hotspot**: always SoftAP `HERO` / `hero1234` on Wi-Fi channel 1,
+  accepting one connected phone. The firmware requests the ESP32-S3's maximum
+  20 dBm transmit-power setting, subject to regulatory and PHY limits. Join it
+  and open `http://192.168.4.1`. No lab router, no provisioning.
 
 ## Hardware
 
@@ -122,7 +126,7 @@ python3 HERO/tools/embed_web.py HERO/web_ui HERO/web_assets.h
 ## Quick usage
 
 1. Power the rover. It starts a Wi-Fi hotspot named **HERO** (password
-   **`hero1234`**).
+   **`hero1234`**) on channel 1, and accepts one connected phone.
 2. Join that network on your phone and open `http://192.168.4.1`.
 3. Unlock with the access token (default **`hero`**).
 4. Drive with the pad (Mood/Speed top-left two thirds, Up top-right, Down

@@ -71,7 +71,7 @@
             <option value="idle">Idle</option>
             <option value="happy">Happy</option>
             <option value="angry">Angry</option>
-            <option value="curious">Curious</option>
+            <option value="shock">Shock</option>
             <option value="dead">Dead</option>
             <option value="sleepy">Sleepy</option>
             <option value="wink">Wink</option>
@@ -79,8 +79,8 @@
         </div>
         <div class="side-row speed-box">
           <label class="row-label" for="speed">Speed</label>
-          <input id="speed" type="range" min="0" max="255" value="255" step="1">
-          <output id="speedVal">255</output>
+          <input id="speed" type="range" min="65" max="100" value="100" step="1">
+          <output id="speedVal">10</output>
         </div>
       </div>
       <button id="btnUp" class="ctrl" title="Forward" aria-label="Forward">
@@ -113,7 +113,7 @@
   <div id="moodPopup" class="mood-popup hidden" role="menu" aria-label="Face mood">
     <button class="mood-opt" role="menuitem" data-mood="happy">Happy</button>
     <button class="mood-opt" role="menuitem" data-mood="angry">Angry</button>
-    <button class="mood-opt" role="menuitem" data-mood="curious">Curious</button>
+    <button class="mood-opt" role="menuitem" data-mood="shock">Shock</button>
     <button class="mood-opt" role="menuitem" data-mood="dead">Dead</button>
     <button class="mood-opt" role="menuitem" data-mood="sleepy">Sleepy</button>
     <button class="mood-opt" role="menuitem" data-mood="wink">Wink</button>
@@ -158,7 +158,7 @@
       <label class="trim-row" for="trimRight">Right trim <output id="trimRightVal">100</output>%</label>
       <input id="trimRight" type="range" min="50" max="100" value="100" step="1">
       <label for="setToken">Access token</label>
-      <input id="setToken" type="password" placeholder="new token (optional)" autocomplete="off" autocapitalize="off">
+      <input id="setToken" type="password" placeholder="new token (optional)" minlength="4" maxlength="32" autocomplete="off" autocapitalize="off">
       <div class="modal-actions">
         <button id="settingsSave" class="primary">Save</button>
       </div>

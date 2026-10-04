@@ -77,7 +77,7 @@ static void motorPinTest() {
     switch (c) {
         case '1': case '2': case '3': case '4': {
             uint8_t index = (uint8_t)(c - '1');
-            uint32_t duty = motors.testPin(index, 200);
+            uint32_t duty = motors.testPin(index, MOTOR_PWM_MAX * 3 / 4);
             Serial.printf("test pin %u duty=%u\n", (unsigned)index, (unsigned)duty);
             break;
         }

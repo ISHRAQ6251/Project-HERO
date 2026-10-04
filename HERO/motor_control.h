@@ -15,8 +15,8 @@ public:
     void begin();
 
     // Drive using arcade-style differential mixing.
-    //   throttle: -255 (full reverse) .. 0 (stop) .. +255 (full forward)
-    //   steering: -255 (hard left) .. 0 (straight) .. +255 (hard right)
+    //   throttle: -MOTOR_PWM_MAX (full reverse) .. 0 .. +MOTOR_PWM_MAX
+    //   steering: -MOTOR_PWM_MAX (hard left) .. 0 .. +MOTOR_PWM_MAX
     void drive(int16_t throttle, int16_t steering);
 
     // Set each motor directly. Positive = forward, negative = reverse.
@@ -29,8 +29,7 @@ public:
     // Bring-up self-test: drive exactly one motor input directly, bypassing
     // trim, reverse and the drive watchdog, so a single GPIO can be isolated.
     //   index: 0=L_IN1, 1=L_IN2, 2=R_IN3, 3=R_IN4
-    //   value: -255..0..255 (sign chooses which side of the half-bridge, but
-    //          with the opposite input held low either sign spins the motor)
+    //   value: -MOTOR_PWM_MAX..0..MOTOR_PWM_MAX (sign selects the input)
     // Auto-coasts after MOTOR_TEST_MS. Returns the LEDC duty read back from the
     // pin, so a caller can tell "pin never attached" (0) from "driven fine".
     uint32_t testPin(uint8_t index, int16_t value);

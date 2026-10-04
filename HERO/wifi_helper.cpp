@@ -15,7 +15,15 @@ void WifiHelper::begin() {
     WiFi.mode(WIFI_AP);
     WiFi.setHostname(HOSTNAME);
     WiFi.onEvent(onWifiEvent);
-    WiFi.softAP(AP_SSID, AP_PASS);
+    if (!WiFi.softAP(AP_SSID, AP_PASS, WIFI_AP_CHANNEL, 0, WIFI_AP_MAX_CONNECTIONS)) {
+        Serial.println("wifi: SoftAP start failed");
+        return;
+    }
+    if (!WiFi.setTxPower(WIFI_POWER_20dBm)) {
+        Serial.println("wifi: failed to request maximum 20 dBm TX power");
+    } else {
+        Serial.println("wifi: requested maximum 20 dBm TX power (regulatory/PHY limits apply)");
+    }
     delay(200);
 
     _dns.setErrorReplyCode(DNSReplyCode::NoError);

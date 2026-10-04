@@ -71,7 +71,8 @@
 // Motor PWM (LEDC)
 // ---------------------------------------------------------------------------
 #define MOTOR_PWM_FREQ    20000   // DRV8833 supports up to 50 kHz
-#define MOTOR_PWM_RES     8       // 8-bit -> 0..255 matches UI speed slider
+#define MOTOR_PWM_RES     10      // 10-bit PWM resolution
+#define MOTOR_PWM_MAX     ((1U << MOTOR_PWM_RES) - 1U)
 
 // ---------------------------------------------------------------------------
 // Wi-Fi / networking
@@ -79,6 +80,8 @@
 #define HOSTNAME          "hero"
 #define AP_SSID           "HERO"
 #define AP_PASS           "hero1234"
+#define WIFI_AP_CHANNEL   1
+#define WIFI_AP_MAX_CONNECTIONS 1
 #define HTTP_PORT         80
 
 // ---------------------------------------------------------------------------
@@ -91,9 +94,7 @@
 // ---------------------------------------------------------------------------
 #define NVS_NAMESPACE     "hero"
 #define NVS_KEY_TOKEN     "auth_token"
-// Settings::save() writes every field and persisted old value 9. A new key
-// prevents it overriding VGA on flashed boards; the old key is orphaned.
-#define NVS_KEY_RES       "cam_res2"
+#define NVS_KEY_RES       "cam_res"
 #define NVS_KEY_QUALITY   "cam_quality"
 #define NVS_KEY_FLIP      "cam_flip"
 #define NVS_KEY_FLASH     "flash_on"

@@ -9,6 +9,8 @@
 #include "camera_server.h"
 #include "web_assets.h"
 #include "buzzer.h"
+#include <limits.h>
+#include <stdlib.h>
 
 WebServerMgr webServerMgr;
 
@@ -21,20 +23,56 @@ static bool authorized(AsyncWebServerRequest* request) {
     return false;
 }
 
+static bool hasValueParam(AsyncWebServerRequest* request, const char* name) {
+    return request->hasParam(name, true) || request->hasParam(name);
+}
+
 static void unauthorized(AsyncWebServerRequest* request) {
     request->send(401, "application/json", "{\"ok\":false,\"error\":\"unauthorized\"}");
 }
 
-static int queryInt(AsyncWebServerRequest* request, const char* name, int fallback) {
-    if (request->hasParam(name, true)) return request->getParam(name, true)->value().toInt();
-    if (request->hasParam(name)) return request->getParam(name)->value().toInt();
-    return fallback;
+static bool queryInt(AsyncWebServerRequest* request, const char* name, int fallback, int& value) {
+    const AsyncWebParameter* param = nullptr;
+    if (request->hasParam(name, true)) param = request->getParam(name, true);
+    else if (request->hasParam(name)) param = request->getParam(name);
+    if (!param) {
+        value = fallback;
+        return true;
+    }
+
+    String textValue = param->value();
+    const char* text = textValue.c_str();
+    char* end = nullptr;
+    long parsed = strtol(text, &end, 10);
+    if (end == text || *end != '\0' || parsed < INT_MIN || parsed > INT_MAX) return false;
+    value = (int)parsed;
+    return true;
+}
+
+static bool queryBool(AsyncWebServerRequest* request, const char* name, bool fallback, bool& value) {
+    if (!hasValueParam(request, name)) {
+        value = fallback;
+        return true;
+    }
+    const AsyncWebParameter* param = request->hasParam(name, true)
+        ? request->getParam(name, true)
+        : request->getParam(name);
+    const String& text = param->value();
+    if (text == "1") {
+        value = true;
+        return true;
+    }
+    if (text == "0") {
+        value = false;
+        return true;
+    }
+    return false;
 }
 
 static HeroMood parseMood(const String& s) {
     if (s == "happy") return HeroMood::HAPPY;
     if (s == "angry") return HeroMood::ANGRY;
-    if (s == "curious") return HeroMood::CURIOUS;
+    if (s == "shock") return HeroMood::SHOCK;
     if (s == "dead") return HeroMood::DEAD;
     if (s == "sleepy") return HeroMood::SLEEPY;
     if (s == "wink") return HeroMood::WINK;
@@ -93,15 +131,21 @@ static void sendState(AsyncWebServerRequest* request) {
     request->send(200, "application/json", String(buf));
 }
 
-// Serial-free bring-up test: GET /api/pintest?token=hero&pin=1&speed=200
+// Serial-free bring-up test: GET /api/pintest?token=hero&pin=1&speed=768
 // drives one motor input (0=L_IN1/GPIO47, 1=L_IN2/GPIO14, 2=R_IN3/GPIO21,
 // 3=R_IN4/GPIO42) for MOTOR_TEST_MS. `duty` in the reply is the PWM value read
 // back from the pin: a non-zero value means the pin is attached and driven, so
 // a wheel that still does not turn points at wiring/DRV8833 rather than code.
 static void handlePinTest(AsyncWebServerRequest* request) {
     if (!authorized(request)) return unauthorized(request);
-    int index = queryInt(request, "pin", -1);
-    int value = queryInt(request, "speed", 200);
+    int index;
+    int value;
+    if (!queryInt(request, "pin", -1, index) ||
+        !queryInt(request, "speed", (int)MOTOR_PWM_MAX * 3 / 4, value) ||
+        value < -(int)MOTOR_PWM_MAX || value > (int)MOTOR_PWM_MAX) {
+        request->send(400, "application/json", "{\"ok\":false,\"error\":\"pin must be 0..3 and speed within PWM range\"}");
+        return;
+    }
     if (index < 0 || index > 3) {
         request->send(400, "application/json", "{\"ok\":false,\"error\":\"pin must be 0..3\"}");
         return;
@@ -158,12 +202,15 @@ void WebServerMgr::begin() {
 
     _server.on("/api/drive", HTTP_POST, [](AsyncWebServerRequest* request) {
         if (!authorized(request)) return unauthorized(request);
-        int16_t throttle = request->hasParam("throttle", true)
-                               ? constrain(request->getParam("throttle", true)->value().toInt(), -255, 255)
-                               : 0;
-        int16_t steering = request->hasParam("steering", true)
-                               ? constrain(request->getParam("steering", true)->value().toInt(), -255, 255)
-                               : 0;
+        int throttleValue;
+        int steeringValue;
+        if (!queryInt(request, "throttle", 0, throttleValue) ||
+            !queryInt(request, "steering", 0, steeringValue)) {
+            request->send(400, "application/json", "{\"ok\":false,\"error\":\"drive values must be integers\"}");
+            return;
+        }
+        int16_t throttle = (int16_t)constrain(throttleValue, -(int)MOTOR_PWM_MAX, (int)MOTOR_PWM_MAX);
+        int16_t steering = (int16_t)constrain(steeringValue, -(int)MOTOR_PWM_MAX, (int)MOTOR_PWM_MAX);
         motors.drive(throttle, steering);
         eyes.setDriving(throttle, steering);
         displayMgr.notifyActivity();
@@ -179,7 +226,7 @@ void WebServerMgr::begin() {
     });
 
     // Bring-up motor test, invokable from a phone browser (serial unusable on
-    // battery): /api/pintest?token=hero&pin=1&speed=200
+    // battery): /api/pintest?token=hero&pin=1&speed=768
     _server.on("/api/pintest", HTTP_GET, handlePinTest);
     _server.on("/api/pintest", HTTP_POST, handlePinTest);
 
@@ -213,32 +260,37 @@ void WebServerMgr::begin() {
 
     _server.on("/api/settings", HTTP_POST, [](AsyncWebServerRequest* request) {
         if (!authorized(request)) return unauthorized(request);
-        if (request->hasParam("oledAnim", true)) {
-            settings.setOledAnim(request->getParam("oledAnim", true)->value() == "1");
+        bool oledAnim = settings.data.oledAnim;
+        bool soundEnabled = settings.data.soundEnabled;
+        bool reverseLeft = settings.data.reverseLeft;
+        bool reverseRight = settings.data.reverseRight;
+        int trimLeft = settings.data.trimLeft;
+        int trimRight = settings.data.trimRight;
+        if (!queryBool(request, "oledAnim", oledAnim, oledAnim) ||
+            !queryBool(request, "soundEnabled", soundEnabled, soundEnabled) ||
+            !queryBool(request, "reverseLeft", reverseLeft, reverseLeft) ||
+            !queryBool(request, "reverseRight", reverseRight, reverseRight) ||
+            !queryInt(request, "trimLeft", trimLeft, trimLeft) ||
+            !queryInt(request, "trimRight", trimRight, trimRight) ||
+            (hasValueParam(request, "trimLeft") &&
+             (trimLeft < MOTOR_TRIM_MIN || trimLeft > MOTOR_TRIM_MAX)) ||
+            (hasValueParam(request, "trimRight") &&
+             (trimRight < MOTOR_TRIM_MIN || trimRight > MOTOR_TRIM_MAX))) {
+            request->send(400, "application/json", "{\"ok\":false,\"error\":\"invalid settings value\"}");
+            return;
+        }
+        if (hasValueParam(request, "oledAnim")) {
+            settings.setOledAnim(oledAnim);
             eyes.setAnimEnabled(settings.data.oledAnim);
         }
-        if (request->hasParam("soundEnabled", true)) {
-            settings.setSoundEnabled(request->getParam("soundEnabled", true)->value() == "1");
+        if (hasValueParam(request, "soundEnabled")) {
+            settings.setSoundEnabled(soundEnabled);
             if (!settings.data.soundEnabled) buzzer.stop();
         }
-        bool motorSave = request->hasParam("reverseLeft", true) || request->hasParam("reverseRight", true) ||
-            request->hasParam("trimLeft", true) || request->hasParam("trimRight", true);
+        bool motorSave = hasValueParam(request, "reverseLeft") || hasValueParam(request, "reverseRight") ||
+            hasValueParam(request, "trimLeft") || hasValueParam(request, "trimRight");
         if (motorSave) {
-            bool left = request->hasParam("reverseLeft", true)
-                ? request->getParam("reverseLeft", true)->value() == "1"
-                : settings.data.reverseLeft;
-            bool right = request->hasParam("reverseRight", true)
-                ? request->getParam("reverseRight", true)->value() == "1"
-                : settings.data.reverseRight;
-            uint8_t trimL = request->hasParam("trimLeft", true)
-                ? (uint8_t)constrain(request->getParam("trimLeft", true)->value().toInt(),
-                                     MOTOR_TRIM_MIN, MOTOR_TRIM_MAX)
-                : settings.data.trimLeft;
-            uint8_t trimR = request->hasParam("trimRight", true)
-                ? (uint8_t)constrain(request->getParam("trimRight", true)->value().toInt(),
-                                     MOTOR_TRIM_MIN, MOTOR_TRIM_MAX)
-                : settings.data.trimRight;
-            settings.setMotorCal(left, right, trimL, trimR);
+            settings.setMotorCal(reverseLeft, reverseRight, (uint8_t)trimLeft, (uint8_t)trimRight);
             motors.reapply();
         }
         if (settings.data.soundEnabled) buzzer.play(BuzzerCue::SETTINGS);
@@ -269,11 +321,11 @@ void WebServerMgr::begin() {
     _server.on("/api/token", HTTP_POST, [](AsyncWebServerRequest* request) {
         if (!authorized(request)) return unauthorized(request);
         String t = request->hasParam("token", true) ? request->getParam("token", true)->value() : "";
-        if (t.length() >= 4) {
+        if (t.length() >= 4 && t.length() <= sizeof(settings.data.authToken) - 1) {
             settings.setToken(t.c_str());
             request->send(200, "application/json", "{\"ok\":true}");
         } else {
-            request->send(400, "application/json", "{\"ok\":false,\"error\":\"token too short\"}");
+            request->send(400, "application/json", "{\"ok\":false,\"error\":\"token must be 4..32 bytes\"}");
         }
     });
 

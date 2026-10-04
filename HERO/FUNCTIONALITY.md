@@ -11,8 +11,7 @@ moods, driving and messages.
 
 - Live MJPEG video stream (`/stream`), VGA 640x480 default, quality configurable
   via NVS; XCLK 20 MHz, PSRAM frame buffers, `CAMERA_GRAB_LATEST` for low latency.
-  Each connected phone gets its own stream packetizer, so a second viewer does
-  not corrupt the first.
+  The SoftAP allows one connected phone to reserve bandwidth for the stream.
 - Camera start / stop from the cockpit. Stop POSTs `/api/camera` `on=0`, which
   de-inits the OV5640 (`esp_camera_deinit`) once stream and snapshot buffers
   are free. Start POSTs `on=1` and re-inits the sensor from `loop()` (never on
@@ -23,8 +22,10 @@ moods, driving and messages.
   - Clip: recorded client-side with MediaRecorder (VP9/VP8 WebM) by drawing the
     stream to a hidden canvas; downloaded as `hero_clip.webm`. No SD card used.
 - Differential drive: Mood/Speed panel spans the top-left two thirds, Up is
-  top-right (same column as Down), Left/Right/Down share the second row; speed slider
-  (0-255), stop on release, arcade-style throttle + steering mixing on the DRV8833.
+  top-right (same column as Down), Left/Right/Down share the second row; speed
+  slider (65-100, quantized to integer levels 1-10 and 65-100% PWM; the current
+  level is displayed), stop on release, arcade-style throttle + steering mixing
+  on the DRV8833.
   The cockpit maps Left to positive steering and Right to negative steering so
   the physical rover turns the correct way; firmware mixing is unchanged
   (`left = throttle + steering`, `right = throttle - steering`).
@@ -40,18 +41,24 @@ moods, driving and messages.
   save, and the motor watchdog. Mute is NVS `sound_on` (default on), checked
   inside `Buzzer`. Photo/clip shutter tones play in the browser (Web Audio),
   not on the piezo, and are independent of that mute.
-- Mood system: six moods (Happy, Angry, Curious, Dead, Sleepy, Wink) shown both
+- Mood system: six moods (Happy, Angry, Shock, Dead, Sleepy, Wink) shown both
   in a quick popup and a dropdown. A mood override lasts ~4 s (Wink 1.5 s)
-  then returns to the idle face.
+  then returns to the idle face. Wink briefly closes one randomly selected eye
+  with a smooth close-hold-open animation, including a short closed-eye hold.
+  Shock gently pulses a filled O-shaped mouth, shifts its gaze between sides,
+  and raises one brow slightly.
 - Message-to-OLED: persistent rounded text box with the animated eyes kept in a
   compact mode above it; cleared with the clear button in the UI.
 - Animated OLED face: blinking, saccades and an autonomous idle script
   (look-around, surprise, suspicious squint, doze-off, occasional wink), a
   wide-eyed "whoa" kick on drive start, driving-reaction eyes, and a Zzz sleep
   state after 60 s without input.
-- Network: always SoftAP `HERO` / `hero1234` at `192.168.4.1` (captive DNS +
-  mDNS hostname `hero`). No station-mode / lab-router provisioning.
-- Auth: token-gated control API (default token `hero`, changeable in Settings).
+- Network: always SoftAP `HERO` / `hero1234` at `192.168.4.1`, channel 1,
+  maximum one connected phone; requests 20 dBm maximum transmit power, subject
+  to regulatory and PHY limits (captive DNS + mDNS hostname `hero`). No
+  station-mode / lab-router provisioning.
+- Auth: token-gated control API (default token `hero`, changeable in Settings
+  using a token of 4–32 bytes).
   Streaming is open so the live view can start before unlock.
 
 ## Web UI
@@ -93,15 +100,15 @@ All control endpoints (except `/api/info`, `/api/auth`, `/stream` and
 | `/api/info` | GET | - | - | `apMode`, `connected`, `ip`, `hostname` |
 | `/api/auth` | POST | - | `token` | Verify token |
 | `/api/state` | GET | yes | - | Full state JSON (below) |
-| `/api/drive` | POST | yes | `throttle`, `steering` | Drive, -255..255. While a button is held the UI repeats this every 300 ms as a keep-alive; the firmware coasts the motors ~1.5 s after the last drive/stop command (`DRIVE_WATCHDOG_MS` in `config.h`) |
+| `/api/drive` | POST | yes | integer `throttle`, `steering` | Drive, clamped to `-MOTOR_PWM_MAX..MOTOR_PWM_MAX` (`-1023..1023` at 10-bit). Malformed integers return 400. While a button is held the UI repeats this every 300 ms as a keep-alive; the firmware coasts the motors ~1.5 s after the last drive/stop command (`DRIVE_WATCHDOG_MS` in `config.h`) |
 | `/api/stop` | POST | yes | - | Coast both motors |
-| `/api/pintest` | GET/POST | yes | `pin` (0-3), `speed` (-255..255, default 200) | Bring-up test: drives a single motor input directly for ~0.6 s (`MOTOR_TEST_MS`), bypassing mixing/reverse/trim/watchdog. Reply `duty` is the PWM read back: non-zero means the pin is attached and driven. Pin map: 0=L_IN1/GPIO47, 1=L_IN2/GPIO14, 2=R_IN3/GPIO21, 3=R_IN4/GPIO42. Example: `/api/pintest?token=hero&pin=1&speed=200` |
-| `/api/mood` | POST | yes | `mood` | `happy` `angry` `curious` `dead` `sleepy` `wink` `idle` |
+| `/api/pintest` | GET/POST | yes | integer `pin` (0-3), integer `speed` (-1023..1023, default 768) | Bring-up test: drives a single motor input directly for ~0.6 s (`MOTOR_TEST_MS`), bypassing mixing/reverse/trim/watchdog. Invalid values return 400. Reply `duty` is the PWM read back: non-zero means the pin is attached and driven. Pin map: 0=L_IN1/GPIO47, 1=L_IN2/GPIO14, 2=R_IN3/GPIO21, 3=R_IN4/GPIO42. Example: `/api/pintest?token=hero&pin=1&speed=768` |
+| `/api/mood` | POST | yes | `mood` | `happy` `angry` `shock` `dead` `sleepy` `wink` `idle` |
 | `/api/message` | POST | yes | `text` | Show message; empty `text` clears |
 | `/api/flash` | POST | yes | `on` | 0/1 flashlight (GPIO2, saved in NVS) |
-| `/api/settings` | POST | yes | `oledAnim`, `reverseLeft`, `reverseRight`, `trimLeft`, `trimRight`, `soundEnabled` | eyes animation, per-motor reverse, PWM trim (50-100), buzzer mute |
+| `/api/settings` | POST | yes | `oledAnim`, `reverseLeft`, `reverseRight`, `trimLeft`, `trimRight`, `soundEnabled` | eyes animation, per-motor reverse, PWM trim (integer 50-100), buzzer mute. Boolean fields must be `0` or `1`; malformed values and out-of-range trims return 400 without applying any part of the request |
 | `/api/camera` | POST | yes | `flip`, `on` | `flip` 0/1 vflip only (upside-down mount). Horizontal mirror is always on so stream L/R matches the chassis. `on` 1 starts the sensor, `on` 0 requests de-init. Init/deinit run in `CameraServer::update()` from `loop()` |
-| `/api/token` | POST | yes | `token` | Change access token (min 4 chars) |
+| `/api/token` | POST | yes | `token` | Change access token (4-32 bytes) |
 
 `/api/state` returns: `throttle`, `steering`, `mood`, `sleeping`,
 `flashlightOn`, `oledAnim`, `camResolution`, `camQuality`, `camFlip`,
@@ -121,20 +128,25 @@ in a stack buffer before being inserted.
 Firmware arcade mix (unchanged):
 
 ```
-left  = constrain(throttle + steering, -255, 255)
-right = constrain(throttle - steering, -255, 255)
+left  = constrain(throttle + steering, -1023, 1023)
+right = constrain(throttle - steering, -1023, 1023)
 ```
 
 Each side is then scaled by trim (50-100%) and optionally sign-flipped by
 `reverseLeft` / `reverseRight` (both default `true` on this wiring). Motor PWM
-uses Arduino LEDC channels 0-3 (timers 0-1) at 20 kHz, 8-bit.
+uses Arduino LEDC channels 0-3 (timers 0-1) at 20 kHz, 10-bit (0-1023). The UI speed slider ranges from 65 to 100 and is quantized to integer levels
+1-10 (only the current level is displayed). Level 1 maps to 65% duty and level
+10 to 100%, with equal steps between levels. Each motor is then scaled by its
+trim percentage.
 
-Cockpit drive pad while a direction is held (values scaled by the speed slider):
+Cockpit drive pad while a direction is held (values scaled by the speed slider;
+`speedLevel` is from 1 to 10):
 
-- Forward: `throttle = +speed`
-- Back: `throttle = -speed`
-- Left: `steering = +speed`
-- Right: `steering = -speed`
+- `duty = round((65 + (speedLevel - 1) * 35 / 9) * 1023 / 100)`
+- Forward: `throttle = +duty`
+- Back: `throttle = -duty`
+- Left: `steering = +duty`
+- Right: `steering = -duty`
 
 Opposite directions cancel. Combined holds (forward+left) produce arcs.
 
@@ -166,15 +178,15 @@ on GPIO 40/41; camera SCCB is I2C port 1 on GPIO 4/5.
 Procedural, drawn with Adafruit_GFX primitives (no bitmaps). Inspired by the
 open-source "Dasai Mochi" OLED projects. Eases every parameter (lid, pupil,
 brow) toward targets. Blinks every ~1.8-4.3 s; the idle script randomly cycles
-look-around, happy squint, curious peek, surprise, suspicious, doze and wink.
+look-around, happy squint, inquisitive peek, surprise, suspicious, doze and wink.
 Moods override the idle script; driving overrides moods with a wide "whoa"
 start and gaze in the steering direction.
 
 ## Camera notes
 
-- Default stream: VGA (640x480), JPEG quality 12, 3 PSRAM frame buffers,
-  `CAMERA_GRAB_LATEST`, XCLK 20 MHz. Quality is unchanged; extra fb and
-  memcpy-batched MJPEG copies cut CPU without shrinking the JPEG.
+- Default stream: VGA (640x480), JPEG quality 14, 3 PSRAM frame buffers,
+  `CAMERA_GRAB_LATEST`, XCLK 20 MHz. Lower JPEG quality numbers mean more
+  detail and larger frames. Extra fb and memcpy-batched MJPEG copies cut CPU.
 - Boot does **not** init the sensor. `wanted()` is false until the cockpit
   POSTs `/api/camera` `on=1`. Init then runs in `update()` from `loop()`.
 - `CameraServer::start()` / `stop()` only set `_wantRunning`. Heavy
@@ -197,10 +209,11 @@ start and gaze in the steering direction.
 
 ## Known limitations
 
-- `/capture` grabs a JPEG at the current stream size. Taking a photo still
-  briefly interrupts the live MJPEG for other clients.
+- `/capture` grabs a JPEG at the current stream size. Snapshot and stream reads
+  share the camera, so a photo can briefly interrupt the live MJPEG while its
+  frame is copied.
 - The rover is AP-only; the phone has no internet while joined to **HERO**.
-- Older iOS Safari often renders only the first MJPEG frame; Chrome (Android
-  or iPhone) is the supported live-view browser.
+- Older iOS browser versions may render only the first MJPEG frame; Chrome on
+  Android is the recommended live-view browser.
 - Flashlight is the GPIO2 LED. Boards without that LED need an external LED
   and resistor on GPIO2.

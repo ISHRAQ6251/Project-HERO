@@ -12,7 +12,7 @@ enum class BuzzerCue : uint8_t {
     CAM_OFF,
     HAPPY,
     ANGRY,
-    CURIOUS,
+    SHOCK,
     DEAD,
     SLEEPY,
     WINK,

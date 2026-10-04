@@ -83,7 +83,7 @@ const state = {
   token: localStorage.getItem("hero_token") || "",
   throttle: 0,
   steering: 0,
-  speedScale: 255,
+  speedScale: 10,
   mood: "idle",
   flashlight: false,
   flip: false,
@@ -386,7 +386,8 @@ function queueStop() {
 }
 
 function computeDrive() {
-  const sp = state.speedScale;
+  const pwmPercent = 65 + ((state.speedScale - 1) * 35 / 9);
+  const sp = Math.round(pwmPercent * 1023 / 100);
   let throttle = 0, steering = 0;
   if (held.has("up")) throttle += sp;
   if (held.has("down")) throttle -= sp;
@@ -489,7 +490,8 @@ let lastSpeedHaptic = 0;
 if (speedInput) {
   speedInput.addEventListener("pointerdown", () => haptic(10));
   speedInput.addEventListener("input", () => {
-    state.speedScale = parseInt(speedInput.value, 10);
+    const sliderValue = parseInt(speedInput.value, 10);
+    state.speedScale = Math.round(1 + ((sliderValue - 65) * 9 / 35));
     if (speedVal) speedVal.textContent = state.speedScale;
     const now = Date.now();
     if (now - lastSpeedHaptic >= 50) {
@@ -720,13 +722,15 @@ $("settingsSave").addEventListener("click", async () => {
     trimRight: trimR,
     soundEnabled: $("soundToggle").checked ? 1 : 0,
   });
-  if (mot.ok) {
-    state.reverseLeft = revL;
-    state.reverseRight = revR;
-    state.trimLeft = trimL;
-    state.trimRight = trimR;
-    state.soundEnabled = $("soundToggle").checked;
+  if (!mot.ok) {
+    msg.textContent = "Could not save rover settings. Check the connection and try again.";
+    return;
   }
+  state.reverseLeft = revL;
+  state.reverseRight = revR;
+  state.trimLeft = trimL;
+  state.trimRight = trimR;
+  state.soundEnabled = $("soundToggle").checked;
 
   const newToken = $("setToken").value.trim();
   if (newToken) {
@@ -739,7 +743,9 @@ $("settingsSave").addEventListener("click", async () => {
       syncTokenNudge();
       msg.textContent = "Token updated. Saved.";
     } else {
-      msg.textContent = "Token must be at least 4 characters.";
+      msg.textContent = r.status === 400
+        ? "Token must be 4 to 32 bytes."
+        : "Could not update token. Check the connection and try again.";
       $("setToken").focus();
       return;
     }

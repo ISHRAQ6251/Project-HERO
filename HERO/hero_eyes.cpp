@@ -5,6 +5,10 @@
 
 HeroEyes eyes;
 
+static bool deadlineReached(uint32_t now, uint32_t deadline) {
+    return (int32_t)(now - deadline) >= 0;
+}
+
 // face geometry on the 128x64 OLED
 static const int16_t EYE_W = 44;
 static const int16_t EYE_H = 34;
@@ -39,7 +43,7 @@ const char* HeroEyes::moodName() const {
     switch (_mood) {
         case HeroMood::HAPPY:    return "happy";
         case HeroMood::ANGRY:    return "angry";
-        case HeroMood::CURIOUS:  return "curious";
+        case HeroMood::SHOCK:    return "shock";
         case HeroMood::DEAD:     return "dead";
         case HeroMood::SLEEPY:   return "sleepy";
         case HeroMood::WINK:     return "wink";
@@ -50,10 +54,14 @@ const char* HeroEyes::moodName() const {
 
 void HeroEyes::setMood(HeroMood m) {
     _mood = m;
+    if (m == HeroMood::WINK) {
+        _winkLeft = random(0, 2) == 0;
+        _winkStartedAt = millis();
+    }
     switch (m) {
         case HeroMood::HAPPY:    buzzer.play(BuzzerCue::HAPPY); break;
         case HeroMood::ANGRY:    buzzer.play(BuzzerCue::ANGRY); break;
-        case HeroMood::CURIOUS:  buzzer.play(BuzzerCue::CURIOUS); break;
+        case HeroMood::SHOCK:    buzzer.play(BuzzerCue::SHOCK); break;
         case HeroMood::DEAD:     buzzer.play(BuzzerCue::DEAD); break;
         case HeroMood::SLEEPY:   buzzer.play(BuzzerCue::SLEEPY); break;
         case HeroMood::WINK:     buzzer.play(BuzzerCue::WINK); break;
@@ -99,7 +107,7 @@ void HeroEyes::setCompact(bool compact) {
 // Autonomous idle behavior script: the character periodically looks around,
 // blinks, and spontaneously shifts through small expressions while idle.
 void HeroEyes::updateIdleScript(uint32_t now) {
-    if (now >= _idleNextPickAt) {
+    if (deadlineReached(now, _idleNextPickAt)) {
         uint8_t r = (uint8_t)random(0, 100);
         if (r < 40) {
             _idlePose = IdlePose::NEUTRAL;
@@ -117,7 +125,7 @@ void HeroEyes::updateIdleScript(uint32_t now) {
             _idlePoseUntil = now + 1200 + random(0, 900);
             _idleNextPickAt = _idlePoseUntil;
         } else if (r < 73) {
-            _idlePose = IdlePose::CURIOUS;
+            _idlePose = IdlePose::INQUISITIVE;
             _idleMouth = MOUTH_O;
             _idlePoseUntil = now + 900 + random(0, 800);
             _idleNextPickAt = _idlePoseUntil;
@@ -144,7 +152,7 @@ void HeroEyes::updateIdleScript(uint32_t now) {
         }
     }
 
-    if (_idlePoseUntil && now >= _idlePoseUntil) {
+    if (_idlePoseUntil && deadlineReached(now, _idlePoseUntil)) {
         _idlePose = IdlePose::NEUTRAL;
         _idleMouth = MOUTH_NEUTRAL;
         _idlePoseUntil = 0;
@@ -153,7 +161,7 @@ void HeroEyes::updateIdleScript(uint32_t now) {
 
     // active look-around drives faster, wider saccades
     if (_idlePose == IdlePose::LOOK) {
-        if (now >= _nextSaccadeAt) {
+        if (deadlineReached(now, _nextSaccadeAt)) {
             _targetPupilX = random(-6, 7);
             _targetPupilY = random(-5, 6);
             _nextSaccadeAt = now + 250 + random(0, 350);
@@ -166,23 +174,23 @@ void HeroEyes::update(uint32_t now) {
     _lastUpdate = now;
 
     // transient moods expire back to idle
-    if (_moodUntil && now >= _moodUntil) {
+    if (_moodUntil && deadlineReached(now, _moodUntil)) {
         _moodUntil = 0;
         _mood = HeroMood::IDLE;
     }
 
     // blinking
-    if (_animEnabled && !_sleeping && now >= _nextBlinkAt) {
+    if (_animEnabled && !_sleeping && deadlineReached(now, _nextBlinkAt)) {
         _blinkUntil = now + 130;
         _nextBlinkAt = now + 1800 + random(0, 2500);
     }
-    if (_blinkUntil && now >= _blinkUntil) {
+    if (_blinkUntil && deadlineReached(now, _blinkUntil)) {
         _blinkUntil = 0;
     }
 
     // saccades while idle
     if (_animEnabled && !_sleeping && _mood == HeroMood::IDLE && !(_throttle != 0 || _steering != 0)) {
-        if (_idlePose != IdlePose::LOOK && now >= _nextSaccadeAt) {
+        if (_idlePose != IdlePose::LOOK && deadlineReached(now, _nextSaccadeAt)) {
             _targetPupilX = random(-4, 5);
             _targetPupilY = random(-4, 5);
             _nextSaccadeAt = now + 900 + random(0, 2200);
@@ -214,7 +222,14 @@ void HeroEyes::update(uint32_t now) {
         switch (_mood) {
             case HeroMood::HAPPY:    _targetLid = 255; _targetPupilX = 0; _targetPupilY = -6; _brow = 200; break;
             case HeroMood::ANGRY:    _targetLid = 230; _targetPupilX = 0; _targetPupilY = 2;  _brow = 60;  break;
-            case HeroMood::CURIOUS:  _targetLid = 255; _targetPupilX = 5; _targetPupilY = -4; _brow = 190; break;
+            case HeroMood::SHOCK: {
+                float glancePhase = (now % 1200UL) * (2.0f * PI / 1200.0f);
+                _targetLid = 255;
+                _targetPupilX = sinf(glancePhase) >= 0 ? 5 : -5;
+                _targetPupilY = -4;
+                _brow = (uint8_t)(180 + (sinf(glancePhase) + 1.0f) * 12.0f);
+                break;
+            }
             case HeroMood::DEAD:     _targetLid = 255; _targetPupilX = 0; _targetPupilY = 0;  _brow = 128; break;
             case HeroMood::SLEEPY:   _targetLid = 60;  _targetPupilX = 0; _targetPupilY = 2;  _brow = 160; break;
             case HeroMood::IDLE:
@@ -234,7 +249,7 @@ void HeroEyes::update(uint32_t now) {
                         _targetPupilY = -6;
                         _brow = 200;
                         break;
-                    case IdlePose::CURIOUS:
+                    case IdlePose::INQUISITIVE:
                         _targetLid = 255;
                         _targetPupilX = 5;
                         _targetPupilY = -4;
@@ -306,7 +321,7 @@ HeroEyes::EyePose HeroEyes::computePose(bool left, uint32_t now) {
         return p;
     }
 
-    if (_blinkUntil && now < _blinkUntil) {
+    if (_blinkUntil && !deadlineReached(now, _blinkUntil)) {
         uint32_t el = now - (_blinkUntil - 130);
         if (el < 45) {
             p.lid = (uint8_t)(255 - (uint32_t)235 * el / 45);
@@ -315,8 +330,19 @@ HeroEyes::EyePose HeroEyes::computePose(bool left, uint32_t now) {
         }
     }
 
-    if (_mood == HeroMood::WINK && !left) {
-        p.lid = 0;
+    if (_mood == HeroMood::WINK && left == _winkLeft) {
+        const uint32_t elapsed = now - _winkStartedAt;
+        constexpr uint32_t closeMs = 100;
+        constexpr uint32_t holdMs = 240;
+        constexpr uint32_t openMs = 160;
+        constexpr uint8_t closedLid = 0;
+        if (elapsed < closeMs) {
+            p.lid = (uint8_t)(255 - (255UL * elapsed / closeMs));
+        } else if (elapsed < closeMs + holdMs) {
+            p.lid = closedLid;
+        } else if (elapsed < closeMs + holdMs + openMs) {
+            p.lid = (uint8_t)(255UL * (elapsed - closeMs - holdMs) / openMs);
+        }
     }
     if (_mood == HeroMood::IDLE && _idlePose == IdlePose::WINK && !left) {
         p.lid = 0;
@@ -369,7 +395,7 @@ void HeroEyes::drawBrow(Adafruit_GFX& c, int16_t x, int16_t y, int16_t w, bool l
             yL = baseY + lift + (left ? -2 : 2);
             yR = baseY + lift + (left ? 2 : -2);
             break;
-        case HeroMood::CURIOUS:
+        case HeroMood::SHOCK:
             yL = baseY + (left ? lift + 3 : lift);
             yR = baseY + (left ? lift + 3 : lift);
             break;
@@ -462,9 +488,13 @@ void HeroEyes::drawMouth(Adafruit_GFX& c, uint32_t now) {
                 c.drawLine(cx - 7, cy, cx + 7, cy, 1);
                 c.drawLine(cx - 3, cy - 2, cx + 3, cy - 2, 1);
                 break;
-            case HeroMood::CURIOUS:
-                c.fillCircle(cx, cy + 1, 2, 1);
+            case HeroMood::SHOCK: {
+                float pulsePhase = (now % 900UL) * (2.0f * PI / 900.0f);
+                int16_t w = 5 + (int16_t)((sinf(pulsePhase) + 1.0f) * 3.0f);
+                int16_t h = 5 + (int16_t)((sinf(pulsePhase) + 1.0f) * 2.0f);
+                c.fillRoundRect(cx - w / 2, cy - h / 2, w, h, min(w, h) / 2, 1);
                 break;
+            }
             default:
                 if (driving) {
                     drawArc(c, cx, cy + 5, 7, (float)(PI / 5), (float)(4 * PI / 5), 1);
